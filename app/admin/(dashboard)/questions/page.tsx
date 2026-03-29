@@ -1,11 +1,20 @@
 import { deleteQuestionAction, upsertQuestionAction } from '@/lib/admin/actions';
 import { getAllQuestions } from '@/lib/quiz/data';
+import { QuestionImportExport } from '@/components/question-import-export';
 
 export default async function AdminQuestionsPage() {
   const questions = await getAllQuestions();
 
   return (
     <div className="space-y-8">
+      <section className="tech-panel rounded-[2rem] p-6">
+        <p className="mono-heading text-xs text-slate-400">Bulk Operations</p>
+        <h2 className="mt-3 text-2xl font-semibold text-slate-50">Import or export question sets</h2>
+        <div className="mt-4">
+          <QuestionImportExport />
+        </div>
+      </section>
+
       <section className="tech-panel rounded-[2rem] p-6">
         <p className="mono-heading text-xs text-slate-400">Create Question</p>
         <h2 className="mt-3 text-2xl font-semibold text-slate-50">Add another systems challenge</h2>

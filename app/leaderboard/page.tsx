@@ -2,12 +2,16 @@ import Link from 'next/link';
 import { ArrowLeft, Medal, TimerReset } from 'lucide-react';
 import { getLeaderboard } from '@/lib/quiz/data';
 import { formatDuration, formatScore } from '@/lib/utils';
+import { AutoRefresh } from '@/components/auto-refresh';
+
+export const dynamic = 'force-dynamic';
 
 export default async function LeaderboardPage() {
   const entries = await getLeaderboard();
 
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-6 py-10 lg:px-10">
+      <AutoRefresh intervalMs={10000} />
       <Link href="/" className="mb-6 inline-flex items-center gap-2 text-sm text-slate-300 transition hover:text-slate-100">
         <ArrowLeft className="h-4 w-4" />
         Back to quiz

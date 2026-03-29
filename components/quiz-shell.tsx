@@ -12,9 +12,9 @@ const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PU
 const initialLeadForm: LeadFormValues = isDemoMode
   ? {
       name: 'Ada Lovelace',
-      email: 'ada@systems.example',
-      linkedinUrl: 'https://www.linkedin.com/in/ada-lovelace',
-      company: 'Kernel Labs'
+      email: 'ada.lovelace@gmail.com',
+      linkedinUrl: '',
+      company: ''
     }
   : {
       name: '',
@@ -78,7 +78,8 @@ export function QuizShell() {
       });
 
       if (!response.ok) {
-        throw new Error('Unable to start the quiz. Please try again.');
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error ?? 'Unable to start the quiz. Please try again.');
       }
 
       const payload = (await response.json()) as QuizStartResponse;
@@ -155,11 +156,11 @@ export function QuizShell() {
     }));
   }
 
+  const isAllowedEmail = /^[^\s@]+@(gmail\.com|googlemail\.com|outlook\.com|hotmail\.com|live\.com)$/i.test(lead.email);
+
   const canStartQuiz =
     lead.name.trim().length > 1 &&
-    /\S+@\S+\.\S+/.test(lead.email) &&
-    /^https?:\/\/(www\.)?linkedin\.com\/.+/i.test(lead.linkedinUrl) &&
-    lead.company.trim().length > 1;
+    isAllowedEmail;
 
   return (
     <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
@@ -189,22 +190,23 @@ export function QuizShell() {
             />
             <LeadInput
               icon={<Mail className="h-4 w-4" />}
-              label="Work Email"
-              placeholder="ada@systems.example"
+              label="Email"
+              placeholder="you@gmail.com"
               value={lead.email}
               type="email"
               onChange={(value) => updateLeadField('email', value)}
+              hint={lead.email && !isAllowedEmail ? 'Only Gmail and Outlook emails are accepted.' : undefined}
             />
             <LeadInput
               icon={<Linkedin className="h-4 w-4" />}
-              label="LinkedIn Profile URL"
+              label="LinkedIn Profile URL (optional)"
               placeholder="https://www.linkedin.com/in/ada-lovelace"
               value={lead.linkedinUrl}
               onChange={(value) => updateLeadField('linkedinUrl', value)}
             />
             <LeadInput
               icon={<Building2 className="h-4 w-4" />}
-              label="Company"
+              label="Company (optional)"
               placeholder="Kernel Labs"
               value={lead.company}
               onChange={(value) => updateLeadField('company', value)}
@@ -281,22 +283,32 @@ export function QuizShell() {
             </div>
 
             {result.goldenTicketCode ? (
-              <div className="rounded-3xl border border-amber-300/40 bg-gradient-to-br from-amber-300/15 via-yellow-200/10 to-slate-950 p-8 shadow-[0_0_40px_rgba(250,204,21,0.12)]">
-                <p className="mono-heading text-xs text-amber-200">Golden Ticket Unlocked</p>
-                <h3 className="mt-3 text-3xl font-semibold text-amber-50">Visit the booth. Skip the small talk.</h3>
-                <p className="mt-3 max-w-2xl text-sm leading-7 text-amber-100/80">
-                  You scored at least 90%. Show this code at the booth to redeem your conference perk and jump straight into the
-                  architecture conversation.
-                </p>
-                <div className="mt-6 inline-flex rounded-2xl border border-amber-200/40 bg-amber-100/10 px-5 py-4 text-2xl font-semibold tracking-[0.25em] text-amber-50">
-                  {result.goldenTicketCode}
+              <div className="relative overflow-hidden rounded-3xl border-2 border-amber-300/60 bg-gradient-to-br from-amber-300/20 via-yellow-200/15 to-amber-500/10 p-8 shadow-[0_0_60px_rgba(250,204,21,0.2)]">
+                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(105deg,transparent_40%,rgba(255,255,255,0.08)_45%,rgba(255,255,255,0.12)_50%,rgba(255,255,255,0.08)_55%,transparent_60%)] animate-[shimmer_3s_ease-in-out_infinite]" />
+                <div className="relative">
+                  <p className="mono-heading text-xs text-amber-200">Golden Ticket Unlocked</p>
+                  <h3 className="mt-3 text-4xl font-bold text-amber-50">You Win a T-Shirt!</h3>
+                  <p className="mt-1 text-2xl font-semibold text-amber-100/90">Visit the booth. Skip the small talk.</p>
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-amber-100/80">
+                    You scored at least 90%. Show the code below at the booth to claim your t-shirt and jump straight into the
+                    architecture conversation.
+                  </p>
+                  <div className="mt-6 inline-flex items-center gap-3 rounded-2xl border-2 border-amber-200/50 bg-amber-100/15 px-6 py-5 text-3xl font-bold tracking-[0.3em] text-amber-50 shadow-[0_0_30px_rgba(250,204,21,0.15)]">
+                    <Trophy className="h-7 w-7 text-amber-300" />
+                    {result.goldenTicketCode}
+                  </div>
                 </div>
               </div>
             ) : (
               <div className="rounded-3xl border border-slate-800 bg-slate-950/45 p-6">
-                <p className="mono-heading text-xs text-slate-400">Result</p>
-                <p className="mt-3 text-lg text-slate-100">Strong run. You finished the challenge, but the Golden Ticket cutoff is 90%.</p>
-                <p className="mt-2 text-sm text-slate-400">Keep the score handy anyway. It still makes a great conversation starter at the booth.</p>
+                <p className="mono-heading text-xs text-slate-400">Challenge Complete</p>
+                <h3 className="mt-3 text-xl font-semibold text-slate-100">
+                  Solid effort! The Golden Ticket threshold is 90%.
+                </h3>
+                <p className="mt-2 text-sm text-slate-400">
+                  You scored {formatScore(result.scorePercentage)} — not far off. Swing by the booth anyway and mention your score.
+                  Strong engineers are always worth talking to.
+                </p>
               </div>
             )}
           </div>
@@ -341,6 +353,7 @@ function LeadInput(props: {
   value: string;
   icon: React.ReactNode;
   type?: string;
+  hint?: string;
   onChange: (value: string) => void;
 }) {
   return (
@@ -356,6 +369,7 @@ function LeadInput(props: {
           className="w-full bg-transparent outline-none placeholder:text-slate-600"
         />
       </span>
+      {props.hint ? <span className="text-xs text-rose-300">{props.hint}</span> : null}
     </label>
   );
 }

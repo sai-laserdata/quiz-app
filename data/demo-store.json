@@ -441,6 +441,78 @@
       "totalQuestions": 5,
       "scorePercentage": 0,
       "goldenTicketCode": null
+    },
+    {
+      "id": "0d26772b-86af-460d-b03c-9aad897222e4",
+      "name": "Ada Lovelace",
+      "email": "ada@systems.example",
+      "linkedinUrl": "https://www.linkedin.com/in/ada-lovelace",
+      "company": "Kernel Labs",
+      "startedAt": "2026-03-28T17:54:26.350Z",
+      "submittedAt": null,
+      "timeTakenMs": null,
+      "answers": {},
+      "correctAnswers": 0,
+      "totalQuestions": 5,
+      "scorePercentage": 0,
+      "goldenTicketCode": null
+    },
+    {
+      "id": "ac899dc9-aab0-466f-9316-b7f6d63d6063",
+      "name": "Ada Lovelace",
+      "email": "ada@systems.example",
+      "linkedinUrl": "https://www.linkedin.com/in/ada-lovelace",
+      "company": "Kernel Labs",
+      "startedAt": "2026-03-29T03:35:17.697Z",
+      "submittedAt": "2026-03-29T03:35:55.212Z",
+      "timeTakenMs": 36997,
+      "answers": {
+        "q-01": "B",
+        "q-02": "C",
+        "q-03": "B",
+        "q-04": "B",
+        "b48fd576-dc4b-4e59-a399-42e0df2931f1": "A"
+      },
+      "correctAnswers": 4,
+      "totalQuestions": 5,
+      "scorePercentage": 80,
+      "goldenTicketCode": null
+    },
+    {
+      "id": "5e5618d2-cc74-4ec7-aad1-183c1f86861f",
+      "name": "Ada Lovelace",
+      "email": "ada2@systems.example",
+      "linkedinUrl": "https://www.linkedin.com/in/ada-lovelace",
+      "company": "Kernel Labs",
+      "startedAt": "2026-03-29T04:16:19.448Z",
+      "submittedAt": "2026-03-29T04:16:32.059Z",
+      "timeTakenMs": 12207,
+      "answers": {
+        "q-01": "B",
+        "q-02": "C",
+        "q-03": "A",
+        "q-04": "B",
+        "b48fd576-dc4b-4e59-a399-42e0df2931f1": "A"
+      },
+      "correctAnswers": 5,
+      "totalQuestions": 5,
+      "scorePercentage": 100,
+      "goldenTicketCode": "IGGY-TSN6"
+    },
+    {
+      "id": "24f99670-28e6-4a5e-afc1-520c7e8b0bc7",
+      "name": "Ada Lovelace",
+      "email": "ada.lovelace@gmail.com",
+      "linkedinUrl": "",
+      "company": "",
+      "startedAt": "2026-03-29T04:21:41.559Z",
+      "submittedAt": null,
+      "timeTakenMs": null,
+      "answers": {},
+      "correctAnswers": 0,
+      "totalQuestions": 5,
+      "scorePercentage": 0,
+      "goldenTicketCode": null
     }
   ]
 }

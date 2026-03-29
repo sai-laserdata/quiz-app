@@ -139,6 +139,15 @@ export async function getDemoParticipants() {
     }));
 }
 
+export async function hasDemoSubmittedAttempt(email: string): Promise<boolean> {
+  const store = await readStore();
+  return store.attempts.some(
+    (attempt) =>
+      attempt.email.toLowerCase() === email.toLowerCase() &&
+      attempt.submittedAt !== null
+  );
+}
+
 export async function startDemoAttempt(lead: LeadFormValues) {
   const store = await readStore();
   const attemptId = randomUUID();

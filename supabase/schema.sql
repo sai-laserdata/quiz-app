@@ -18,8 +18,8 @@ create table if not exists public.quiz_attempts (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   email text not null,
-  linkedin_url text not null,
-  company text not null,
+  linkedin_url text not null default '',
+  company text not null default '',
   started_at timestamptz not null default timezone('utc', now()),
   submitted_at timestamptz,
   time_taken_ms integer,
@@ -177,3 +177,6 @@ set
   option_c = excluded.option_c,
   option_d = excluded.option_d,
   correct_option = excluded.correct_option;
+
+create index if not exists idx_quiz_attempts_email_submitted
+on public.quiz_attempts (email) where submitted_at is not null;

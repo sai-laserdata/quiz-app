@@ -3,6 +3,7 @@ import {
   deleteDemoQuestion,
   getDemoParticipants,
   getDemoQuestions,
+  hasDemoSubmittedAttempt,
   startDemoAttempt,
   submitDemoAttempt,
   upsertDemoQuestion
@@ -62,6 +63,26 @@ export async function getActiveQuestions() {
   }
 
   return (data ?? []).map(mapQuestionRow);
+}
+
+export async function hasSubmittedAttempt(email: string): Promise<boolean> {
+  if (!hasSupabaseEnv()) {
+    return hasDemoSubmittedAttempt(email);
+  }
+
+  const supabase = createServiceRoleClient();
+  const { data, error } = await supabase
+    .from('quiz_attempts')
+    .select('id')
+    .eq('email', email)
+    .not('submitted_at', 'is', null)
+    .limit(1);
+
+  if (error) {
+    throw new Error(`Failed to check for existing attempt: ${error.message}`);
+  }
+
+  return (data ?? []).length > 0;
 }
 
 export async function startQuizAttempt(lead: LeadFormValues) {

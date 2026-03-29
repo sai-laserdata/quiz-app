@@ -171,3 +171,8 @@ select {
   opacity: 0.72;
   transform: translateY(-0.03em);
 }
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
