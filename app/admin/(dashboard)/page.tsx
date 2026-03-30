@@ -17,9 +17,9 @@ export default async function AdminOverviewPage() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <p className="mono-heading text-xs text-slate-400">Top Performers</p>
-            <h2 className="mt-3 text-2xl font-semibold text-slate-50">Leaderboard snapshot</h2>
+            <h2 className="mt-3 text-2xl font-semibold text-slate-50">Leaderboard</h2>
           </div>
-          <p className="text-sm text-slate-400">Sorted by correct answers descending, then time ascending.</p>
+          <p className="text-sm text-slate-400">Sorted by score, then fastest time.</p>
         </div>
 
         <div className="mt-6 overflow-hidden rounded-3xl border border-slate-800">

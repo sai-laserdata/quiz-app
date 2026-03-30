@@ -40,9 +40,9 @@ export function AdminLoginForm({ demoMode }: { demoMode: boolean }) {
   return (
     <div className="tech-panel mx-auto w-full max-w-lg rounded-[2rem] p-8">
       <p className="mono-heading text-xs text-sky-300">Admin Access</p>
-      <h1 className="mt-4 text-3xl font-semibold text-slate-50">Question control and lead analytics</h1>
+      <h1 className="mt-4 text-3xl font-semibold text-slate-50">LaserData Quiz Admin</h1>
       <p className="mt-3 text-sm leading-7 text-slate-300">
-        Sign in with your Supabase admin credentials to manage the quiz, inspect participants, and export conference leads.
+        Sign in to manage questions, view participants, and track quiz results.
       </p>
 
       {demoMode ? (

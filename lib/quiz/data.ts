@@ -1,5 +1,7 @@
 import { randomUUID } from 'crypto';
 import {
+  clearAllDemoParticipants,
+  deleteDemoParticipant,
   deleteDemoQuestion,
   getDemoParticipants,
   getDemoQuestions,
@@ -20,6 +22,8 @@ import type {
   QuizQuestion,
   QuizResult
 } from '@/lib/types';
+
+import { QUESTIONS_PER_QUIZ, pickRandom } from '@/lib/quiz/config';
 
 function mapQuestionRow(row: {
   id: string;
@@ -95,7 +99,8 @@ export async function startQuizAttempt(lead: LeadFormValues) {
   }
 
   const attemptId = randomUUID();
-  const questions = await getActiveQuestions();
+  const allQuestions = await getActiveQuestions();
+  const questions = pickRandom(allQuestions, QUESTIONS_PER_QUIZ);
   const publicQuestions = questions.map(({ correctOption: _correctOption, isActive: _isActive, ...question }) => question);
 
   const supabase = createServiceRoleClient();
@@ -125,7 +130,9 @@ export async function submitQuizAttempt(input: {
     return submitDemoAttempt(input);
   }
 
-  const questions = await getActiveQuestions();
+  const allQuestions = await getActiveQuestions();
+  const answeredIds = new Set(Object.keys(input.answers));
+  const questions = allQuestions.filter((q) => answeredIds.has(q.id));
   const result = scoreQuiz(questions, input.answers, input.attemptId, input.elapsedMs);
 
   const supabase = createServiceRoleClient();
@@ -343,5 +350,33 @@ export async function removeQuestion(id: string) {
 
   if (error) {
     throw new Error(`Failed to delete question: ${error.message}`);
+  }
+}
+
+export async function removeParticipant(id: string) {
+  if (!hasSupabaseEnv()) {
+    await deleteDemoParticipant(id);
+    return;
+  }
+
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from('quiz_attempts').delete().eq('id', id);
+
+  if (error) {
+    throw new Error(`Failed to delete participant: ${error.message}`);
+  }
+}
+
+export async function clearAllParticipants() {
+  if (!hasSupabaseEnv()) {
+    await clearAllDemoParticipants();
+    return;
+  }
+
+  const supabase = createServiceRoleClient();
+  const { error } = await supabase.from('quiz_attempts').delete().neq('id', '');
+
+  if (error) {
+    throw new Error(`Failed to clear participants: ${error.message}`);
   }
 }

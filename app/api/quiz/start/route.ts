@@ -11,11 +11,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name and email are required.' }, { status: 400 });
     }
 
-    const allowedEmailPattern = /^[^\s@]+@(gmail\.com|googlemail\.com|outlook\.com|hotmail\.com|live\.com)$/i;
-    if (!allowedEmailPattern.test(lead.email)) {
-      return NextResponse.json({ error: 'Only Gmail and Outlook email addresses are accepted.' }, { status: 400 });
-    }
-
     // Default optional fields
     lead.linkedinUrl = lead.linkedinUrl || '';
     lead.company = lead.company || '';

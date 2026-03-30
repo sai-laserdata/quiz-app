@@ -9,7 +9,7 @@ export default async function AdminQuestionsPage() {
     <div className="space-y-8">
       <section className="tech-panel rounded-[2rem] p-6">
         <p className="mono-heading text-xs text-slate-400">Bulk Operations</p>
-        <h2 className="mt-3 text-2xl font-semibold text-slate-50">Import or export question sets</h2>
+        <h2 className="mt-3 text-2xl font-semibold text-slate-50">Import or export questions</h2>
         <div className="mt-4">
           <QuestionImportExport />
         </div>
@@ -17,18 +17,18 @@ export default async function AdminQuestionsPage() {
 
       <section className="tech-panel rounded-[2rem] p-6">
         <p className="mono-heading text-xs text-slate-400">Create Question</p>
-        <h2 className="mt-3 text-2xl font-semibold text-slate-50">Add another systems challenge</h2>
+        <h2 className="mt-3 text-2xl font-semibold text-slate-50">Add a new question</h2>
         <QuestionForm action={upsertQuestionAction} />
       </section>
 
       <section className="space-y-4">
         <div>
-          <p className="mono-heading text-xs text-slate-400">Question Inventory</p>
-          <h2 className="mt-3 text-2xl font-semibold text-slate-50">Edit, reorder, or retire existing prompts</h2>
+          <p className="mono-heading text-xs text-slate-400">All Questions</p>
+          <h2 className="mt-3 text-2xl font-semibold text-slate-50">Edit or remove existing questions</h2>
         </div>
 
         {questions.map((question) => (
-          <div key={question.id} className="tech-panel rounded-[2rem] p-6">
+          <div key={`${question.id}-${question.correctOption}-${question.isActive}`} className="tech-panel rounded-[2rem] p-6">
             <QuestionForm action={upsertQuestionAction} question={question} />
 
             <form action={deleteQuestionAction} className="mt-4">

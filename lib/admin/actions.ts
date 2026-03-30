@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { assertAdmin } from '@/lib/admin/auth';
-import { removeQuestion, saveQuestion } from '@/lib/quiz/data';
+import { clearAllParticipants, removeParticipant, removeQuestion, saveQuestion } from '@/lib/quiz/data';
 import type { QuestionOptionKey } from '@/lib/types';
 
 function readRequiredString(formData: FormData, key: string) {
@@ -60,4 +60,25 @@ export async function deleteQuestionAction(formData: FormData) {
   revalidatePath('/admin/questions');
   revalidatePath('/');
   revalidatePath('/quiz');
+}
+
+export async function deleteParticipantAction(formData: FormData) {
+  await assertAdmin();
+
+  const id = readRequiredString(formData, 'id');
+  await removeParticipant(id);
+
+  revalidatePath('/admin');
+  revalidatePath('/admin/participants');
+  revalidatePath('/leaderboard');
+}
+
+export async function clearAllParticipantsAction() {
+  await assertAdmin();
+
+  await clearAllParticipants();
+
+  revalidatePath('/admin');
+  revalidatePath('/admin/participants');
+  revalidatePath('/leaderboard');
 }

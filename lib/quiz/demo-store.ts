@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { sampleParticipants, sampleQuestions } from '@/lib/quiz/sample-data';
 import { scoreQuiz } from '@/lib/quiz/scoring';
 import { generateGoldenTicketCode } from '@/lib/utils';
+import { QUESTIONS_PER_QUIZ, pickRandom } from '@/lib/quiz/config';
 import type { AdminParticipant, LeadFormValues, QuestionOptionKey, QuizQuestion, QuizResult } from '@/lib/types';
 
 type DemoAttempt = {
@@ -151,7 +152,8 @@ export async function hasDemoSubmittedAttempt(email: string): Promise<boolean> {
 export async function startDemoAttempt(lead: LeadFormValues) {
   const store = await readStore();
   const attemptId = randomUUID();
-  const questions = store.questions.filter((question) => question.isActive).sort((left, right) => left.position - right.position);
+  const allQuestions = store.questions.filter((question) => question.isActive).sort((left, right) => left.position - right.position);
+  const questions = pickRandom(allQuestions, QUESTIONS_PER_QUIZ);
 
   store.attempts.push({
     id: attemptId,
@@ -183,7 +185,9 @@ export async function submitDemoAttempt(input: {
   elapsedMs: number;
 }): Promise<QuizResult> {
   const store = await readStore();
-  const questions = store.questions.filter((question) => question.isActive).sort((left, right) => left.position - right.position);
+  const allQuestions = store.questions.filter((question) => question.isActive);
+  const answeredIds = new Set(Object.keys(input.answers));
+  const questions = allQuestions.filter((q) => answeredIds.has(q.id));
   const result = scoreQuiz(questions, input.answers, input.attemptId, input.elapsedMs);
   const attempt = store.attempts.find((entry) => entry.id === input.attemptId);
 
@@ -241,5 +245,17 @@ export async function upsertDemoQuestion(input: {
 export async function deleteDemoQuestion(id: string) {
   const store = await readStore();
   store.questions = store.questions.filter((question) => question.id !== id);
+  await writeStore(store);
+}
+
+export async function deleteDemoParticipant(id: string) {
+  const store = await readStore();
+  store.attempts = store.attempts.filter((attempt) => attempt.id !== id);
+  await writeStore(store);
+}
+
+export async function clearAllDemoParticipants() {
+  const store = await readStore();
+  store.attempts = [];
   await writeStore(store);
 }

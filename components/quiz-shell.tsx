@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { BadgeCheck, Binary, Building2, Clock3, Linkedin, LoaderCircle, Mail, Play, Trophy, UserRound } from 'lucide-react';
+import { BadgeCheck, Building2, Clock3, Linkedin, LoaderCircle, Mail, Play, Trophy, UserRound } from 'lucide-react';
+
 import { cn, formatDuration, formatScore } from '@/lib/utils';
 import type { LeadFormValues, QuestionOptionKey, QuizQuestionPublic, QuizResult, QuizStartResponse } from '@/lib/types';
 
@@ -9,11 +10,13 @@ type QuizPhase = 'lead-capture' | 'in-progress' | 'complete';
 
 const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
+const LINKEDIN_PREFIX = 'https://www.linkedin.com/in/';
+
 const initialLeadForm: LeadFormValues = isDemoMode
   ? {
       name: 'Ada Lovelace',
       email: 'ada.lovelace@gmail.com',
-      linkedinUrl: '',
+      linkedinUrl: 'ada-lovelace',
       company: ''
     }
   : {
@@ -69,12 +72,18 @@ export function QuizShell() {
     setErrorMessage(null);
 
     try {
+      const requestBody = {
+        lead: {
+          ...lead,
+          linkedinUrl: lead.linkedinUrl.trim() ? LINKEDIN_PREFIX + lead.linkedinUrl.trim() : ''
+        }
+      };
       const response = await fetch('/api/quiz/start', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ lead })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
@@ -156,26 +165,31 @@ export function QuizShell() {
     }));
   }
 
-  const isAllowedEmail = /^[^\s@]+@(gmail\.com|googlemail\.com|outlook\.com|hotmail\.com|live\.com)$/i.test(lead.email);
+  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lead.email);
+  const isValidLinkedin = /^[a-zA-Z0-9\-]+$/.test(lead.linkedinUrl.trim());
 
   const canStartQuiz =
     lead.name.trim().length > 1 &&
-    isAllowedEmail;
+    isValidEmail &&
+    isValidLinkedin;
 
   return (
-    <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+    <div className="mx-auto max-w-2xl">
       <section className="tech-panel rounded-3xl p-8">
         <div className="mb-6 space-y-3">
-          <p className="mono-heading text-xs text-sky-300">Conference Lead Engine</p>
-          <h2 className="text-3xl font-semibold text-slate-50">High-Performance Systems IQ</h2>
-          <p className="max-w-2xl text-sm leading-7 text-slate-300">
-            Screen for real systems intuition in under three minutes. The flow captures conference leads, measures speed with
-            millisecond precision, and rewards top scorers with a Golden Ticket for booth redemption.
-          </p>
-          {isDemoMode ? (
-            <p className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
-              Demo mode is active. The attendee fields are pre-filled so you can start the quiz immediately.
-            </p>
+          <h2 className="text-2xl font-semibold text-slate-50">LaserData Quiz</h2>
+          {phase === 'lead-capture' ? (
+            <>
+              <p className="max-w-2xl text-sm leading-7 text-slate-300">
+                Think fast. Decide faster. Tackle real streaming system scenarios — no backtracking.
+                Score high and win an <strong className="text-amber-200">Iggy T-shirt</strong>.
+              </p>
+              {isDemoMode ? (
+                <p className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+                  Demo mode is active. The attendee fields are pre-filled so you can start the quiz immediately.
+                </p>
+              ) : null}
+            </>
           ) : null}
         </div>
 
@@ -191,19 +205,29 @@ export function QuizShell() {
             <LeadInput
               icon={<Mail className="h-4 w-4" />}
               label="Email"
-              placeholder="you@gmail.com"
+              placeholder="you@company.com"
               value={lead.email}
               type="email"
               onChange={(value) => updateLeadField('email', value)}
-              hint={lead.email && !isAllowedEmail ? 'Only Gmail and Outlook emails are accepted.' : undefined}
+              hint={lead.email && lead.email.includes('@') && !isValidEmail ? 'Please enter a valid email address.' : undefined}
             />
-            <LeadInput
-              icon={<Linkedin className="h-4 w-4" />}
-              label="LinkedIn Profile URL (optional)"
-              placeholder="https://www.linkedin.com/in/ada-lovelace"
-              value={lead.linkedinUrl}
-              onChange={(value) => updateLeadField('linkedinUrl', value)}
-            />
+            <label className="grid gap-2">
+              <span className="mono-heading text-[11px] text-slate-400">LinkedIn Username</span>
+              <span className="flex items-center gap-0 rounded-2xl border border-slate-800 bg-slate-950/55 text-sm text-slate-200">
+                <span className="flex items-center gap-2 pl-4 text-slate-500">
+                  <Linkedin className="h-4 w-4 text-sky-300" />
+                  <span className="whitespace-nowrap">linkedin.com/in/</span>
+                </span>
+                <input
+                  type="text"
+                  value={lead.linkedinUrl}
+                  onChange={(e) => updateLeadField('linkedinUrl', e.target.value)}
+                  placeholder="your-username"
+                  className="w-full bg-transparent px-1 py-3 outline-none placeholder:text-slate-600"
+                />
+              </span>
+              <span className="text-xs text-slate-500">Share your LinkedIn so we can connect and follow up after the conference.</span>
+            </label>
             <LeadInput
               icon={<Building2 className="h-4 w-4" />}
               label="Company (optional)"
@@ -268,7 +292,7 @@ export function QuizShell() {
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-sky-400/40 bg-sky-500/20 px-5 py-3 font-medium text-sky-100 transition hover:border-sky-300 hover:bg-sky-400/25 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
-                {currentIndex === questions.length - 1 ? 'Submit Quiz' : 'Lock Answer'}
+                {currentIndex === questions.length - 1 ? 'Submit Quiz' : 'Submit Answer'}
               </button>
             </div>
           </div>
@@ -287,7 +311,7 @@ export function QuizShell() {
                 <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(105deg,transparent_40%,rgba(255,255,255,0.08)_45%,rgba(255,255,255,0.12)_50%,rgba(255,255,255,0.08)_55%,transparent_60%)] animate-[shimmer_3s_ease-in-out_infinite]" />
                 <div className="relative">
                   <p className="mono-heading text-xs text-amber-200">Golden Ticket Unlocked</p>
-                  <h3 className="mt-3 text-4xl font-bold text-amber-50">You Win a T-Shirt!</h3>
+                  <h3 className="mt-3 text-4xl font-bold text-amber-50">You Won a T-Shirt!</h3>
                   <p className="mt-1 text-2xl font-semibold text-amber-100/90">Visit the booth. Skip the small talk.</p>
                   <p className="mt-4 max-w-2xl text-sm leading-7 text-amber-100/80">
                     You scored at least 90%. Show the code below at the booth to claim your t-shirt and jump straight into the
@@ -297,6 +321,9 @@ export function QuizShell() {
                     <Trophy className="h-7 w-7 text-amber-300" />
                     {result.goldenTicketCode}
                   </div>
+                  <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-amber-300/80">
+                    Limited tees. First come, first claimed. Don&apos;t sit on this.
+                  </p>
                 </div>
               </div>
             ) : (
@@ -311,38 +338,36 @@ export function QuizShell() {
                 </p>
               </div>
             )}
+
+            <div className="rounded-3xl border border-sky-400/15 bg-slate-950/40 p-6 text-center">
+              <p className="text-sm font-medium text-slate-200">
+                Curious why Apache Iggy is called the Kafka killer?
+              </p>
+              <p className="mt-1 text-xs text-slate-400">
+                Discover how Iggy delivers 10x throughput with zero JVM overhead.
+              </p>
+              <div className="mt-4 flex items-center justify-center gap-3">
+                <a
+                  href="https://iggy.apache.org"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-sky-400/30 bg-sky-500/15 px-5 py-2.5 text-sm font-medium text-sky-100 transition hover:border-sky-300 hover:bg-sky-400/25"
+                >
+                  Explore Apache Iggy
+                </a>
+                <a
+                  href="https://laserdata.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-700 bg-slate-900/50 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
+                >
+                  About LaserData
+                </a>
+              </div>
+            </div>
           </div>
         ) : null}
       </section>
-
-      <aside className="space-y-6">
-        <div className="tech-panel rounded-3xl p-6">
-          <p className="mono-heading text-xs text-slate-400">Signal Criteria</p>
-          <div className="mt-4 space-y-4 text-sm text-slate-300">
-            <div className="flex items-start gap-3">
-              <Binary className="mt-0.5 h-4 w-4 text-sky-300" />
-              <p>One question at a time with no back button, so the ranking reflects first-principles recall under pressure.</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <Clock3 className="mt-0.5 h-4 w-4 text-sky-300" />
-              <p>The timer starts on the first question render and is frozen at the exact click of the final submit action.</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <Trophy className="mt-0.5 h-4 w-4 text-sky-300" />
-              <p>Leaderboard rank is based on correct answers first, then fastest completion time as the tiebreaker.</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="tech-panel rounded-3xl p-6">
-          <p className="mono-heading text-xs text-slate-400">Conference Hook</p>
-          <ul className="mt-4 space-y-3 text-sm text-slate-300">
-            <li>Capture name, work email, LinkedIn, and company before the quiz starts.</li>
-            <li>Route high scorers to an in-person booth redemption flow with a unique code.</li>
-            <li>Feed the leaderboard and admin analytics from the same normalized results table.</li>
-          </ul>
-        </div>
-      </aside>
     </div>
   );
 }

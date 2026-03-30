@@ -13,9 +13,9 @@ export default async function AdminDashboardLayout({ children }: Readonly<{ chil
       <header className="tech-panel mb-8 flex flex-col gap-6 rounded-[2rem] p-6 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <p className="mono-heading text-xs text-sky-300">Admin Dashboard</p>
-          <h1 className="mt-3 text-3xl font-semibold text-slate-50">Quiz ops, leaderboard health, and lead capture</h1>
+          <h1 className="mt-3 text-3xl font-semibold text-slate-50">LaserData Quiz Admin</h1>
           <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
-            Use this console to manage question inventory, rank participants, and export the strongest conference conversations.
+            Manage questions, view participants, and track quiz performance.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -30,9 +30,9 @@ export default async function AdminDashboardLayout({ children }: Readonly<{ chil
         <aside className="tech-panel h-fit rounded-[2rem] p-4">
           <nav className="grid gap-2">
             <NavLink href="/admin" icon={<BarChart3 className="h-4 w-4" />} label="Overview" />
-            <NavLink href="/admin/questions" icon={<ClipboardList className="h-4 w-4" />} label="Question Manager" />
-            <NavLink href="/admin/participants" icon={<DatabaseZap className="h-4 w-4" />} label="Lead Export" />
-            <NavLink href="/leaderboard" icon={<Trophy className="h-4 w-4" />} label="Public Leaderboard" />
+            <NavLink href="/admin/questions" icon={<ClipboardList className="h-4 w-4" />} label="Questions" />
+            <NavLink href="/admin/participants" icon={<DatabaseZap className="h-4 w-4" />} label="Participants" />
+            <NavLink href="/leaderboard" icon={<Trophy className="h-4 w-4" />} label="Leaderboard" />
           </nav>
         </aside>
 

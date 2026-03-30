@@ -7,7 +7,15 @@ const config: Config = {
     './lib/**/*.{js,ts,jsx,tsx,mdx}'
   ],
   theme: {
-    extend: {}
+    extend: {
+      colors: {
+        slate: {
+          800: '#0a2a3a',
+          900: '#062230',
+          950: '#041520',
+        },
+      },
+    },
   },
   plugins: []
 };

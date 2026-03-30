@@ -3,10 +3,12 @@ import { ArrowLeft, Medal, TimerReset } from 'lucide-react';
 import { getLeaderboard } from '@/lib/quiz/data';
 import { formatDuration, formatScore } from '@/lib/utils';
 import { AutoRefresh } from '@/components/auto-refresh';
+import { requireAdmin } from '@/lib/admin/auth';
 
 export const dynamic = 'force-dynamic';
 
 export default async function LeaderboardPage() {
+  await requireAdmin();
   const entries = await getLeaderboard();
 
   return (
@@ -20,8 +22,8 @@ export default async function LeaderboardPage() {
       <section className="tech-panel rounded-[2rem] p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="mono-heading text-xs text-sky-300">Public Leaderboard</p>
-            <h1 className="mt-3 text-3xl font-semibold text-slate-50">Fastest strong signals rise to the top</h1>
+            <p className="mono-heading text-xs text-sky-300">Leaderboard</p>
+            <h1 className="mt-3 text-3xl font-semibold text-slate-50">Top performers</h1>
           </div>
           <div className="flex flex-wrap gap-3 text-xs text-slate-400">
             <span className="rounded-full border border-slate-700 px-3 py-1">Primary sort: Correct answers desc</span>
