@@ -30,6 +30,9 @@ type DemoStore = {
 
 const demoStorePath = path.join(process.cwd(), 'data', 'demo-store.json');
 
+let storeInitialized = false;
+let cachedStore: DemoStore | null = null;
+
 function buildInitialStore(): DemoStore {
   return {
     questions: sampleQuestions,
@@ -52,13 +55,18 @@ function buildInitialStore(): DemoStore {
 }
 
 async function ensureDemoStore() {
+  if (storeInitialized) return;
+
   await mkdir(path.dirname(demoStorePath), { recursive: true });
 
   try {
     const contents = await readFile(demoStorePath, 'utf8');
     const parsed = JSON.parse(contents) as Partial<DemoStore>;
     if (!parsed.questions || parsed.questions.length === 0) {
-      await writeFile(demoStorePath, JSON.stringify(buildInitialStore(), null, 2), 'utf8');
+      const initial = buildInitialStore();
+      await writeFile(demoStorePath, JSON.stringify(initial, null, 2), 'utf8');
+      cachedStore = initial;
+      storeInitialized = true;
       return;
     }
 
@@ -79,32 +87,32 @@ async function ensureDemoStore() {
     );
 
     if (needsMigration) {
-      await writeFile(
-        demoStorePath,
-        JSON.stringify(
-          {
-            questions: parsed.questions,
-            attempts: migratedAttempts
-          },
-          null,
-          2
-        ),
-        'utf8'
-      );
+      const migrated = { questions: parsed.questions as QuizQuestion[], attempts: migratedAttempts as DemoAttempt[] };
+      await writeFile(demoStorePath, JSON.stringify(migrated, null, 2), 'utf8');
+      cachedStore = migrated;
+    } else {
+      cachedStore = { questions: parsed.questions as QuizQuestion[], attempts: (parsed.attempts ?? []) as DemoAttempt[] };
     }
   } catch {
-    await writeFile(demoStorePath, JSON.stringify(buildInitialStore(), null, 2), 'utf8');
+    const initial = buildInitialStore();
+    await writeFile(demoStorePath, JSON.stringify(initial, null, 2), 'utf8');
+    cachedStore = initial;
   }
+
+  storeInitialized = true;
 }
 
-async function readStore() {
+async function readStore(): Promise<DemoStore> {
   await ensureDemoStore();
+  if (cachedStore) return cachedStore;
   const file = await readFile(demoStorePath, 'utf8');
-  return JSON.parse(file) as DemoStore;
+  cachedStore = JSON.parse(file) as DemoStore;
+  return cachedStore;
 }
 
 async function writeStore(store: DemoStore) {
   await ensureDemoStore();
+  cachedStore = store;
   await writeFile(demoStorePath, JSON.stringify(store, null, 2), 'utf8');
 }
 

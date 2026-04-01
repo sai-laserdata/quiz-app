@@ -145,24 +145,25 @@ export async function submitQuizAttempt(input: {
     answer_order: index + 1
   }));
 
-  const { error: answersError } = await supabase.from('quiz_answers').upsert(answerRows, {
-    onConflict: 'attempt_id,question_id'
-  });
+  const [{ error: answersError }, { error: attemptError }] = await Promise.all([
+    supabase.from('quiz_answers').upsert(answerRows, {
+      onConflict: 'attempt_id,question_id'
+    }),
+    supabase
+      .from('quiz_attempts')
+      .update({
+        submitted_at: new Date().toISOString(),
+        time_taken_ms: result.elapsedMs,
+        correct_answers: result.correctAnswers,
+        score_percentage: result.scorePercentage,
+        golden_ticket_code: result.goldenTicketCode
+      })
+      .eq('id', input.attemptId)
+  ]);
 
   if (answersError) {
     throw new Error(`Failed to save answers: ${answersError.message}`);
   }
-
-  const { error: attemptError } = await supabase
-    .from('quiz_attempts')
-    .update({
-      submitted_at: new Date().toISOString(),
-      time_taken_ms: result.elapsedMs,
-      correct_answers: result.correctAnswers,
-      score_percentage: result.scorePercentage,
-      golden_ticket_code: result.goldenTicketCode
-    })
-    .eq('id', input.attemptId);
 
   if (attemptError) {
     throw new Error(`Failed to finalize attempt: ${attemptError.message}`);
@@ -183,6 +184,7 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
         return left.timeTakenMs - right.timeTakenMs;
       })
       .map((participant, index) => ({
+        id: participant.id,
         rank: index + 1,
         name: participant.name,
         company: participant.company,
@@ -197,7 +199,7 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from('quiz_attempts')
-    .select('name, company, correct_answers, total_questions, score_percentage, time_taken_ms, golden_ticket_code')
+    .select('id, name, company, correct_answers, total_questions, score_percentage, time_taken_ms, golden_ticket_code')
     .not('submitted_at', 'is', null)
     .order('correct_answers', { ascending: false })
     .order('time_taken_ms', { ascending: true })
@@ -208,6 +210,7 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   }
 
   return (data ?? []).map((entry, index) => ({
+    id: entry.id,
     rank: index + 1,
     name: entry.name,
     company: entry.company,
