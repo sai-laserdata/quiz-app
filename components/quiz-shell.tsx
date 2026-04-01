@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { BadgeCheck, Building2, Clock3, Linkedin, LoaderCircle, Mail, Play, Trophy, UserRound } from 'lucide-react';
+import { BadgeCheck, Building2, Clock3, Download, Linkedin, LoaderCircle, Mail, Play, Trophy, UserRound } from 'lucide-react';
 
 import { cn, formatDuration, formatScore } from '@/lib/utils';
 import type { LeadFormValues, QuestionOptionKey, QuizQuestionPublic, QuizResult, QuizStartResponse } from '@/lib/types';
@@ -173,6 +173,68 @@ export function QuizShell() {
     isValidEmail &&
     isValidLinkedin;
 
+  function handleDownloadTicket(code: string, correct: number, total: number) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 400;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Background
+    ctx.fillStyle = '#041520';
+    ctx.fillRect(0, 0, 800, 400);
+
+    // Border
+    ctx.strokeStyle = 'rgba(252, 211, 77, 0.5)';
+    ctx.lineWidth = 3;
+    ctx.roundRect(16, 16, 768, 368, 24);
+    ctx.stroke();
+
+    // Title
+    ctx.fillStyle = '#fcd34d';
+    ctx.font = 'bold 14px monospace';
+    ctx.fillText('GOLDEN TICKET UNLOCKED', 40, 60);
+
+    // Main heading
+    ctx.fillStyle = '#fffbeb';
+    ctx.font = 'bold 36px system-ui, sans-serif';
+    ctx.fillText('You Won a T-Shirt!', 40, 110);
+
+    // Score
+    ctx.fillStyle = 'rgba(255, 251, 235, 0.7)';
+    ctx.font = '18px system-ui, sans-serif';
+    ctx.fillText(`${correct} out of ${total} correct`, 40, 150);
+
+    // Code background
+    ctx.fillStyle = 'rgba(252, 211, 77, 0.1)';
+    ctx.strokeStyle = 'rgba(252, 211, 77, 0.4)';
+    ctx.lineWidth = 2;
+    ctx.roundRect(40, 180, 420, 80, 16);
+    ctx.fill();
+    ctx.stroke();
+
+    // Code text
+    ctx.fillStyle = '#fffbeb';
+    ctx.font = 'bold 40px monospace';
+    ctx.fillText(code, 70, 235);
+
+    // Footer
+    ctx.fillStyle = 'rgba(252, 211, 77, 0.6)';
+    ctx.font = 'bold 11px monospace';
+    ctx.fillText('LIMITED TEES. FIRST COME, FIRST CLAIMED.', 40, 310);
+
+    // Branding
+    ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
+    ctx.font = '13px system-ui, sans-serif';
+    ctx.fillText('LaserData Quiz — Rust India Conference 2026', 40, 360);
+
+    // Download
+    const link = document.createElement('a');
+    link.download = `golden-ticket-${code}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
   return (
     <div className="mx-auto max-w-2xl">
       <section className="tech-panel rounded-3xl p-8">
@@ -200,6 +262,7 @@ export function QuizShell() {
               label="Full Name"
               placeholder="Ada Lovelace"
               value={lead.name}
+              required
               onChange={(value) => updateLeadField('name', value)}
             />
             <LeadInput
@@ -208,11 +271,12 @@ export function QuizShell() {
               placeholder="you@company.com"
               value={lead.email}
               type="email"
+              required
               onChange={(value) => updateLeadField('email', value)}
               hint={lead.email && lead.email.includes('@') && !isValidEmail ? 'Please enter a valid email address.' : undefined}
             />
             <label className="grid gap-2">
-              <span className="mono-heading text-[11px] text-slate-400">LinkedIn Username</span>
+              <span className="mono-heading text-[11px] text-slate-400">LinkedIn Username<span className="text-rose-400"> *</span></span>
               <span className="flex items-center gap-0 rounded-2xl border border-slate-800 bg-slate-950/55 text-sm text-slate-200">
                 <span className="flex items-center gap-2 pl-4 text-slate-500">
                   <Linkedin className="h-4 w-4 text-sky-300" />
@@ -314,12 +378,21 @@ export function QuizShell() {
                   <h3 className="mt-3 text-4xl font-bold text-amber-50">You Won a T-Shirt!</h3>
                   <p className="mt-1 text-2xl font-semibold text-amber-100/90">Visit the booth. Skip the small talk.</p>
                   <p className="mt-4 max-w-2xl text-sm leading-7 text-amber-100/80">
-                    You scored at least 90%. Show the code below at the booth to claim your t-shirt and jump straight into the
-                    architecture conversation.
+                    You got {result.correctAnswers} out of {result.totalQuestions} right. Show the code below at the booth to claim your t-shirt.
                   </p>
-                  <div className="mt-6 inline-flex items-center gap-3 rounded-2xl border-2 border-amber-200/50 bg-amber-100/15 px-6 py-5 text-3xl font-bold tracking-[0.3em] text-amber-50 shadow-[0_0_30px_rgba(250,204,21,0.15)]">
-                    <Trophy className="h-7 w-7 text-amber-300" />
-                    {result.goldenTicketCode}
+                  <div className="mt-6 flex flex-wrap items-center gap-4">
+                    <div className="inline-flex items-center gap-3 rounded-2xl border-2 border-amber-200/50 bg-amber-100/15 px-6 py-5 text-3xl font-bold tracking-[0.3em] text-amber-50 shadow-[0_0_30px_rgba(250,204,21,0.15)]">
+                      <Trophy className="h-7 w-7 text-amber-300" />
+                      {result.goldenTicketCode}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadTicket(result.goldenTicketCode!, result.correctAnswers, result.totalQuestions)}
+                      className="inline-flex items-center gap-2 rounded-2xl border border-amber-300/40 bg-amber-200/10 px-5 py-3 text-sm font-medium text-amber-100 transition hover:border-amber-200 hover:bg-amber-200/20"
+                    >
+                      <Download className="h-4 w-4" />
+                      Save Ticket
+                    </button>
                   </div>
                   <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-amber-300/80">
                     Limited tees. First come, first claimed. Don&apos;t sit on this.
@@ -330,11 +403,10 @@ export function QuizShell() {
               <div className="rounded-3xl border border-slate-800 bg-slate-950/45 p-6">
                 <p className="mono-heading text-xs text-slate-400">Challenge Complete</p>
                 <h3 className="mt-3 text-xl font-semibold text-slate-100">
-                  Solid effort! The Golden Ticket threshold is 90%.
+                  You got {result.correctAnswers} out of {result.totalQuestions} right. You needed at least {Math.min(3, result.totalQuestions)} to win.
                 </h3>
                 <p className="mt-2 text-sm text-slate-400">
-                  You scored {formatScore(result.scorePercentage)} — not far off. Swing by the booth anyway and mention your score.
-                  Strong engineers are always worth talking to.
+                  Swing by the booth anyway — strong engineers are always worth talking to.
                 </p>
               </div>
             )}
@@ -379,11 +451,15 @@ function LeadInput(props: {
   icon: React.ReactNode;
   type?: string;
   hint?: string;
+  required?: boolean;
   onChange: (value: string) => void;
 }) {
   return (
     <label className="grid gap-2">
-      <span className="mono-heading text-[11px] text-slate-400">{props.label}</span>
+      <span className="mono-heading text-[11px] text-slate-400">
+        {props.label}
+        {props.required ? <span className="text-rose-400"> *</span> : null}
+      </span>
       <span className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/55 px-4 py-3 text-sm text-slate-200">
         <span className="text-sky-300">{props.icon}</span>
         <input

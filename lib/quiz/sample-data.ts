@@ -198,6 +198,7 @@ export const sampleLeaderboard: LeaderboardEntry[] = sampleParticipants
     return left.timeTakenMs - right.timeTakenMs;
   })
   .map((participant, index) => ({
+    id: participant.id,
     rank: index + 1,
     name: participant.name,
     company: participant.company,

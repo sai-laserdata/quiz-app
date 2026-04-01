@@ -43,6 +43,7 @@ export type QuizResult = {
 };
 
 export type LeaderboardEntry = {
+  id: string;
   rank: number;
   name: string;
   company: string;
