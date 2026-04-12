@@ -427,13 +427,14 @@ export function QuizShell() {
                 >
                   Explore Apache Iggy
                 </a>
-                <a
+                <a 
                   href="https://laserdata.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-700 bg-slate-900/50 px-5 py-2.5 text-sm font-medium text-slate-300 transition hover:border-slate-500 hover:text-slate-100"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-sky-400/30 bg-sky-500/15 px-5 py-2.5 text-sm font-medium text-sky-100 transition hover:border-sky-300 hover:bg-sky-400/25"
                 >
-                  About LaserData
+                  About
+                  <img src="/laserdata-logo.svg" alt="LaserData" className="inline-block h-[14px] w-auto align-middle" />
                 </a>
               </div>
             </div>

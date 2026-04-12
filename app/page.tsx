@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { Play } from 'lucide-react';
 
 export default function HomePage() {
@@ -12,12 +11,11 @@ export default function HomePage() {
       <section className="tech-panel rounded-[2.5rem] px-8 py-14 lg:px-14 lg:py-20">
         <div className="flex flex-col items-center text-center">
           <a href="https://laserdata.com" target="_blank" rel="noopener noreferrer">
-            <Image
-              src="https://assets.laserdata.com/laserdata_large_white.png"
-              alt="Laserdata"
+            <img
+              src="/laserdata-logo.svg"
+              alt="LaserData"
               width={200}
-              height={44}
-              unoptimized
+              height={38}
               className="transition hover:opacity-80"
             />
           </a>
