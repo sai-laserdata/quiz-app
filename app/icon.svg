@@ -1,5 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-  <rect width="32" height="32" rx="6" fill="#041520"/>
-  <rect x="1" y="1" width="30" height="30" rx="5" fill="none" stroke="rgba(96,165,250,0.3)" stroke-width="1"/>
-  <text x="16" y="23" text-anchor="middle" font-family="system-ui,-apple-system,sans-serif" font-weight="700" font-size="20" fill="#38BDF8">L</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 52 65">
+  <path fill="#FFFFFF" d="M0 14h23.53C44.117 14 50 26.5 50 39s-5.882 25-26.47 25H0z"/>
+  <path fill="#041520" d="M15.571 21h10.715l-6.429 26.69H37L34.857 57H7z"/>
+  <path fill="#8CC63F" d="M35.235 39h-6.47C27.79 39 27 39.84 27 40.875s.79 1.875 1.765 1.875h6.47c.975 0 1.765-.84 1.765-1.875S36.21 39 35.235 39"/>
 </svg>
