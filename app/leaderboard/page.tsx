@@ -34,7 +34,20 @@ export default async function LeaderboardPage() {
 
         <aside className="flex items-center justify-center lg:sticky lg:top-0 lg:h-screen lg:self-start">
           <div className="tech-panel flex w-full flex-col items-center gap-6 rounded-[2rem] p-10">
-            <p className="mono-heading text-base text-sky-300">Scan to Play</p>
+            <Image
+              src="/laserdata-logo.svg"
+              alt="LaserData logo"
+              width={160}
+              height={40}
+              className="h-auto"
+              priority
+            />
+            <div className="text-center">
+              <h2 className="text-xl font-semibold text-slate-50">Can You Think in Streams?</h2>
+              <p className="mt-2 text-sm text-slate-400">
+                Scan, solve &amp; score — win exclusive Iggy swag!
+              </p>
+            </div>
             <div className="rounded-2xl bg-white p-5">
               <Image
                 src="/quiz-qr.png"
@@ -45,9 +58,7 @@ export default async function LeaderboardPage() {
                 priority
               />
             </div>
-            <p className="text-center text-base text-slate-300">
-              Scan to take the quiz!
-            </p>
+            <p className="mono-heading text-sm text-sky-300">Scan to Play</p>
           </div>
         </aside>
       </div>
