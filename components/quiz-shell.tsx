@@ -375,11 +375,8 @@ export function QuizShell() {
                 <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(105deg,transparent_40%,rgba(255,255,255,0.08)_45%,rgba(255,255,255,0.12)_50%,rgba(255,255,255,0.08)_55%,transparent_60%)] animate-[shimmer_3s_ease-in-out_infinite]" />
                 <div className="relative">
                   <p className="mono-heading text-xs text-amber-200">Golden Ticket Unlocked</p>
-                  <h3 className="mt-3 text-4xl font-bold text-amber-50">You Won a T-Shirt!</h3>
-                  <p className="mt-1 text-2xl font-semibold text-amber-100/90">Visit the booth. Skip the small talk.</p>
-                  <p className="mt-4 max-w-2xl text-sm leading-7 text-amber-100/80">
-                    You got {result.correctAnswers} out of {result.totalQuestions} right. Show the code below at the booth to claim your t-shirt.
-                  </p>
+                  <h3 className="mt-3 text-2xl font-bold text-amber-50">You crushed it — {result.correctAnswers}/{result.totalQuestions} correct.</h3>
+                  <p className="mt-2 text-lg font-semibold text-amber-100/90">Show this code at the booth to claim your swag.</p>
                   <div className="mt-6 flex flex-wrap items-center gap-4">
                     <div className="inline-flex items-center gap-3 rounded-2xl border-2 border-amber-200/50 bg-amber-100/15 px-6 py-5 text-3xl font-bold tracking-[0.3em] text-amber-50 shadow-[0_0_30px_rgba(250,204,21,0.15)]">
                       <Trophy className="h-7 w-7 text-amber-300" />
