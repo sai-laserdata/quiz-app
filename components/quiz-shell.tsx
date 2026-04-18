@@ -244,7 +244,7 @@ export function QuizShell() {
             <>
               <p className="max-w-2xl text-sm leading-7 text-slate-300">
                 Think fast. Decide faster. Tackle real streaming system scenarios — no backtracking.
-                Score high and win an <strong className="text-amber-200">Iggy T-shirt</strong>.
+                Score high and faster.
               </p>
               {isDemoMode ? (
                 <p className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">

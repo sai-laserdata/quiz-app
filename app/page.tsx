@@ -25,7 +25,7 @@ export default function HomePage() {
           </h1>
 
           <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-300">
-            A rapid-fire quiz on real streaming architectures. Score high and walk away with an <strong className="text-amber-200">exclusive Iggy T-shirt</strong>.
+            A rapid-fire quiz on real streaming architectures. Score high & faster and walk away with <strong className="text-amber-200">exclusive Iggy swag</strong>.
           </p>
 
           <Link
