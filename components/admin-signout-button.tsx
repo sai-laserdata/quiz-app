@@ -18,7 +18,7 @@ export function AdminSignOutButton() {
     <button
       type="button"
       onClick={handleSignOut}
-      className="inline-flex items-center gap-2 rounded-2xl border border-slate-700 bg-slate-900/70 px-4 py-2 text-sm text-slate-200 transition hover:border-slate-600 hover:bg-slate-800"
+      className="inline-flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-900/70 px-4 py-2 text-sm text-slate-200 transition hover:border-slate-600 hover:bg-slate-800"
     >
       <LogOut className="h-4 w-4" />
       Sign Out

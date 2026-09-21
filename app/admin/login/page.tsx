@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { AdminLoginForm } from '@/components/admin-login-form';
-import { hasSupabaseEnv } from '@/lib/supabase/env';
+import { isDemoMode } from '@/lib/supabase/env';
 
 export default function AdminLoginPage() {
   return (
@@ -10,7 +10,7 @@ export default function AdminLoginPage() {
         <ArrowLeft className="h-4 w-4" />
         Back to quiz
       </Link>
-      <AdminLoginForm demoMode={!hasSupabaseEnv()} />
+      <AdminLoginForm demoMode={isDemoMode()} />
     </main>
   );
 }

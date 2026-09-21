@@ -26,7 +26,13 @@ create table if not exists public.quiz_attempts (
   correct_answers integer not null default 0,
   total_questions integer not null default 0,
   score_percentage numeric(5, 2) not null default 0,
-  golden_ticket_code text unique
+  golden_ticket_code text unique,
+  -- Questions actually served for this attempt. Submission scores against this
+  -- list, never against the question ids the client sends back.
+  served_question_ids uuid[],
+  -- Case-insensitive identity for the one-attempt-per-person rule. `email`
+  -- keeps whatever the lead typed, for follow-up and the CSV export.
+  email_normalized text generated always as (lower(email)) stored
 );
 
 create table if not exists public.quiz_answers (
@@ -82,12 +88,10 @@ alter table public.quiz_attempts enable row level security;
 alter table public.quiz_answers enable row level security;
 alter table public.admin_profiles enable row level security;
 
+-- No anon/authenticated read policy on public.questions: the anon key ships to
+-- the browser, so any such policy publishes correct_option to every visitor.
+-- The app reads questions exclusively through the service-role client.
 drop policy if exists "Public can read active questions" on public.questions;
-create policy "Public can read active questions"
-on public.questions
-for select
-to anon, authenticated
-using (is_active = true);
 
 drop policy if exists "Admins can manage questions" on public.questions;
 create policy "Admins can manage questions"
@@ -158,6 +162,8 @@ as $$
   from public.quiz_attempts;
 $$;
 
+revoke execute on function public.quiz_admin_summary() from anon, authenticated;
+
 insert into public.questions (position, prompt, option_a, option_b, option_c, option_d, correct_option)
 values
   (
@@ -180,3 +186,9 @@ set
 
 create index if not exists idx_quiz_attempts_email_submitted
 on public.quiz_attempts (email) where submitted_at is not null;
+
+create index if not exists idx_quiz_attempts_email_normalized
+on public.quiz_attempts (email_normalized);
+
+create index if not exists idx_quiz_attempts_email_normalized_submitted
+on public.quiz_attempts (email_normalized) where submitted_at is not null;

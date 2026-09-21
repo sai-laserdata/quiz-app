@@ -30,7 +30,6 @@ export type QuizStartResponse = {
 export type QuizSubmitPayload = {
   attemptId: string;
   answers: Record<string, QuestionOptionKey>;
-  elapsedMs: number;
 };
 
 export type QuizResult = {
@@ -40,6 +39,8 @@ export type QuizResult = {
   scorePercentage: number;
   elapsedMs: number;
   goldenTicketCode: string | null;
+  /** Prompts the participant got wrong. Already shown to them, so safe to return. */
+  missedPrompts: string[];
 };
 
 export type LeaderboardEntry = {

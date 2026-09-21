@@ -19,7 +19,7 @@ export default async function LeaderboardPage() {
         Back to admin
       </Link>
 
-      <section className="tech-panel rounded-[2rem] p-6">
+      <section className="tech-panel rounded-xl p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="mono-heading text-xs text-sky-300">Leaderboard</p>

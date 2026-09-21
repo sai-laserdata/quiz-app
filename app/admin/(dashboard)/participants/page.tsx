@@ -4,11 +4,15 @@ import { getParticipants } from '@/lib/quiz/data';
 import { deleteParticipantAction, clearAllParticipantsAction } from '@/lib/admin/actions';
 import { formatDuration, formatScore } from '@/lib/utils';
 
+// Auth-gated and per-request: never prerender this at build time, which would
+// otherwise bake participant data into static HTML.
+export const dynamic = 'force-dynamic';
+
 export default async function AdminParticipantsPage() {
   const participants = await getParticipants();
 
   return (
-    <div className="tech-panel rounded-[2rem] p-6">
+    <div className="tech-panel rounded-xl p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="mono-heading text-xs text-slate-400">Participants</p>
@@ -19,7 +23,7 @@ export default async function AdminParticipantsPage() {
             <form action={clearAllParticipantsAction}>
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 rounded-2xl border border-rose-400/35 bg-rose-500/10 px-4 py-3 text-sm text-rose-100 transition hover:border-rose-300 hover:bg-rose-500/15"
+                className="inline-flex items-center gap-2 rounded-lg border border-rose-400/35 bg-rose-500/10 px-4 py-3 text-sm text-rose-100 transition hover:border-rose-300 hover:bg-rose-500/15"
               >
                 <Trash2 className="h-4 w-4" />
                 Clear All
@@ -28,7 +32,7 @@ export default async function AdminParticipantsPage() {
           ) : null}
           <Link
             href="/admin/participants/export"
-            className="inline-flex items-center gap-2 rounded-2xl border border-sky-400/40 bg-sky-500/20 px-4 py-3 text-sm text-sky-100 transition hover:border-sky-300 hover:bg-sky-400/25"
+            className="inline-flex items-center gap-2 rounded-lg border border-sky-400/40 bg-sky-500/20 px-4 py-3 text-sm text-sky-100 transition hover:border-sky-300 hover:bg-sky-400/25"
           >
             <Download className="h-4 w-4" />
             Export CSV
@@ -39,7 +43,7 @@ export default async function AdminParticipantsPage() {
       {participants.length === 0 ? (
         <p className="mt-6 text-sm text-slate-400">No participants yet.</p>
       ) : (
-        <div className="mt-6 overflow-hidden rounded-3xl border border-slate-800">
+        <div className="mt-6 overflow-x-auto rounded-xl border border-slate-800">
           <table className="min-w-full divide-y divide-slate-800 text-left text-sm">
             <thead className="bg-slate-950/70 text-slate-400">
               <tr>
