@@ -2,9 +2,10 @@ import { mkdir, readFile, writeFile } from 'fs/promises';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import { sampleParticipants, sampleQuestions } from '@/lib/quiz/sample-data';
-import { scoreQuiz } from '@/lib/quiz/scoring';
-import { generateGoldenTicketCode } from '@/lib/utils';
-import { QUESTIONS_PER_QUIZ, pickRandom } from '@/lib/quiz/config';
+import { elapsedSince, pickServedAnswers, scoreQuiz } from '@/lib/quiz/scoring';
+import { QuizRequestError } from '@/lib/quiz/errors';
+import { generateGoldenTicketCode, normalizeEmail } from '@/lib/utils';
+import { MAX_ATTEMPTS_PER_EMAIL, QUESTIONS_PER_QUIZ, pickRandom } from '@/lib/quiz/config';
 import type { AdminParticipant, LeadFormValues, QuestionOptionKey, QuizQuestion, QuizResult } from '@/lib/types';
 
 type DemoAttempt = {
@@ -17,6 +18,7 @@ type DemoAttempt = {
   submittedAt: string | null;
   timeTakenMs: number | null;
   answers: Record<string, QuestionOptionKey>;
+  servedQuestionIds?: string[];
   correctAnswers: number;
   totalQuestions: number;
   scorePercentage: number;
@@ -151,14 +153,21 @@ export async function getDemoParticipants() {
 export async function hasDemoSubmittedAttempt(email: string): Promise<boolean> {
   const store = await readStore();
   return store.attempts.some(
-    (attempt) =>
-      attempt.email.toLowerCase() === email.toLowerCase() &&
-      attempt.submittedAt !== null
+    (attempt) => normalizeEmail(attempt.email) === normalizeEmail(email) && attempt.submittedAt !== null
   );
 }
 
 export async function startDemoAttempt(lead: LeadFormValues) {
   const store = await readStore();
+
+  const existingAttempts = store.attempts.filter(
+    (attempt) => normalizeEmail(attempt.email) === normalizeEmail(lead.email)
+  ).length;
+
+  if (existingAttempts >= MAX_ATTEMPTS_PER_EMAIL) {
+    throw new QuizRequestError('Too many quiz attempts for this email address.', 429);
+  }
+
   const attemptId = randomUUID();
   const allQuestions = store.questions.filter((question) => question.isActive).sort((left, right) => left.position - right.position);
   const questions = pickRandom(allQuestions, QUESTIONS_PER_QUIZ);
@@ -173,6 +182,7 @@ export async function startDemoAttempt(lead: LeadFormValues) {
     submittedAt: null,
     timeTakenMs: null,
     answers: {},
+    servedQuestionIds: questions.map((question) => question.id),
     correctAnswers: 0,
     totalQuestions: questions.length,
     scorePercentage: 0,
@@ -190,25 +200,40 @@ export async function startDemoAttempt(lead: LeadFormValues) {
 export async function submitDemoAttempt(input: {
   attemptId: string;
   answers: Record<string, QuestionOptionKey>;
-  elapsedMs: number;
 }): Promise<QuizResult> {
   const store = await readStore();
-  const allQuestions = store.questions.filter((question) => question.isActive);
-  const answeredIds = new Set(Object.keys(input.answers));
-  const questions = allQuestions.filter((q) => answeredIds.has(q.id));
-  const result = scoreQuiz(questions, input.answers, input.attemptId, input.elapsedMs);
   const attempt = store.attempts.find((entry) => entry.id === input.attemptId);
 
-  if (attempt) {
-    attempt.answers = input.answers;
-    attempt.submittedAt = new Date().toISOString();
-    attempt.timeTakenMs = input.elapsedMs;
-    attempt.correctAnswers = result.correctAnswers;
-    attempt.totalQuestions = result.totalQuestions;
-    attempt.scorePercentage = result.scorePercentage;
-    attempt.goldenTicketCode = result.goldenTicketCode;
-    await writeStore(store);
+  if (!attempt) {
+    throw new QuizRequestError('Unknown quiz attempt.', 404);
   }
+
+  if (attempt.submittedAt) {
+    throw new QuizRequestError('This quiz attempt has already been submitted.', 409);
+  }
+
+  const servedQuestionIds = attempt.servedQuestionIds ?? [];
+
+  if (servedQuestionIds.length === 0) {
+    throw new QuizRequestError('This quiz attempt has no recorded questions. Please start a new quiz.', 409);
+  }
+
+  const questionsById = new Map(store.questions.map((question) => [question.id, question]));
+  const questions = servedQuestionIds
+    .map((questionId) => questionsById.get(questionId))
+    .filter((question): question is QuizQuestion => Boolean(question));
+
+  const answers = pickServedAnswers(servedQuestionIds, input.answers);
+  const result = scoreQuiz(questions, answers, input.attemptId, elapsedSince(attempt.startedAt));
+
+  attempt.answers = answers;
+  attempt.submittedAt = new Date().toISOString();
+  attempt.timeTakenMs = result.elapsedMs;
+  attempt.correctAnswers = result.correctAnswers;
+  attempt.totalQuestions = result.totalQuestions;
+  attempt.scorePercentage = result.scorePercentage;
+  attempt.goldenTicketCode = result.goldenTicketCode;
+  await writeStore(store);
 
   return result;
 }

@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from 'react';
 import { BadgeCheck, Building2, Clock3, Download, Linkedin, LoaderCircle, Mail, Play, Trophy, UserRound } from 'lucide-react';
 
 import { cn, formatDuration, formatScore } from '@/lib/utils';
+import { CORRECT_TO_WIN } from '@/lib/quiz/config';
+import { IggyReleaseStrip } from '@/components/iggy-release';
+import { LaserDataCloudCard } from '@/components/laserdata-cloud';
 import type { LeadFormValues, QuestionOptionKey, QuizQuestionPublic, QuizResult, QuizStartResponse } from '@/lib/types';
 
 type QuizPhase = 'lead-capture' | 'in-progress' | 'complete';
@@ -128,6 +131,7 @@ export function QuizShell() {
     if (animationFrameRef.current !== null) {
       window.cancelAnimationFrame(animationFrameRef.current);
     }
+    // Display-only: the recorded time comes back from the server.
     setElapsedMs(finalElapsedMs);
     timerOriginRef.current = null;
 
@@ -139,13 +143,13 @@ export function QuizShell() {
         },
         body: JSON.stringify({
           attemptId,
-          answers,
-          elapsedMs: finalElapsedMs
+          answers
         })
       });
 
       if (!response.ok) {
-        throw new Error('Unable to submit the quiz. Please try again.');
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error ?? 'Unable to submit the quiz. Please try again.');
       }
 
       const payload = (await response.json()) as QuizResult;
@@ -180,36 +184,47 @@ export function QuizShell() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Safari <16.4 has no roundRect; fall back to a plain rect there.
+    const roundRect = (x: number, y: number, w: number, h: number, r: number) => {
+      if (typeof ctx.roundRect === 'function') {
+        ctx.roundRect(x, y, w, h, r);
+      } else {
+        ctx.rect(x, y, w, h);
+      }
+    };
+
     // Background
-    ctx.fillStyle = '#041520';
+    ctx.fillStyle = '#070c0f';
     ctx.fillRect(0, 0, 800, 400);
 
     // Border
     ctx.strokeStyle = 'rgba(252, 211, 77, 0.5)';
     ctx.lineWidth = 3;
-    ctx.roundRect(16, 16, 768, 368, 24);
+    ctx.beginPath();
+    roundRect(16, 16, 768, 368, 24);
     ctx.stroke();
 
     // Title
     ctx.fillStyle = '#fcd34d';
     ctx.font = 'bold 14px monospace';
-    ctx.fillText('GOLDEN TICKET UNLOCKED', 40, 60);
+    ctx.fillText('CLAIM CODE', 40, 60);
 
     // Main heading
     ctx.fillStyle = '#fffbeb';
-    ctx.font = 'bold 36px system-ui, sans-serif';
-    ctx.fillText('You Won a T-Shirt!', 40, 110);
+    ctx.font = '600 36px system-ui, sans-serif';
+    ctx.fillText('Nice work.', 40, 110);
 
     // Score
     ctx.fillStyle = 'rgba(255, 251, 235, 0.7)';
     ctx.font = '18px system-ui, sans-serif';
-    ctx.fillText(`${correct} out of ${total} correct`, 40, 150);
+    ctx.fillText('Show this code at the booth.', 40, 150);
 
     // Code background
     ctx.fillStyle = 'rgba(252, 211, 77, 0.1)';
     ctx.strokeStyle = 'rgba(252, 211, 77, 0.4)';
     ctx.lineWidth = 2;
-    ctx.roundRect(40, 180, 420, 80, 16);
+    ctx.beginPath();
+    roundRect(40, 180, 420, 80, 16);
     ctx.fill();
     ctx.stroke();
 
@@ -221,12 +236,12 @@ export function QuizShell() {
     // Footer
     ctx.fillStyle = 'rgba(252, 211, 77, 0.6)';
     ctx.font = 'bold 11px monospace';
-    ctx.fillText('LIMITED TEES. FIRST COME, FIRST CLAIMED.', 40, 310);
+    ctx.fillText('LIMITED STOCK. FIRST CLAIMED, FIRST SERVED.', 40, 310);
 
     // Branding
     ctx.fillStyle = 'rgba(148, 163, 184, 0.5)';
     ctx.font = '13px system-ui, sans-serif';
-    ctx.fillText('LaserData Quiz — Rust India Conference 2026', 40, 360);
+    ctx.fillText('LaserData Quiz — laserdata.com', 40, 360);
 
     // Download
     const link = document.createElement('a');
@@ -237,17 +252,16 @@ export function QuizShell() {
 
   return (
     <div className="mx-auto max-w-2xl">
-      <section className="tech-panel rounded-3xl p-8">
+      <section className="tech-panel rounded-xl p-8">
         <div className="mb-6 space-y-3">
-          <h2 className="text-2xl font-semibold text-slate-50">LaserData Quiz</h2>
+          <h2 className="text-2xl font-semibold text-white">LaserData Quiz</h2>
           {phase === 'lead-capture' ? (
             <>
               <p className="max-w-2xl text-sm leading-7 text-slate-300">
-                Think fast. Decide faster. Tackle real streaming system scenarios — no backtracking.
-                Score high and faster.
+                Real streaming-system scenarios. Forward-only, against the clock.
               </p>
               {isDemoMode ? (
-                <p className="rounded-2xl border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
+                <p className="rounded-lg border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
                   Demo mode is active. The attendee fields are pre-filled so you can start the quiz immediately.
                 </p>
               ) : null}
@@ -277,7 +291,7 @@ export function QuizShell() {
             />
             <label className="grid gap-2">
               <span className="mono-heading text-[11px] text-slate-400">LinkedIn Username<span className="text-rose-400"> *</span></span>
-              <span className="flex items-center gap-0 rounded-2xl border border-slate-800 bg-slate-950/55 text-sm text-slate-200">
+              <span className="flex items-center gap-0 rounded-lg border border-slate-800 bg-slate-950/55 text-sm text-slate-200">
                 <span className="flex items-center gap-2 pl-4 text-slate-500">
                   <Linkedin className="h-4 w-4 text-sky-300" />
                   <span className="whitespace-nowrap">linkedin.com/in/</span>
@@ -305,7 +319,7 @@ export function QuizShell() {
             <button
               type="submit"
               disabled={!canStartQuiz || isStarting}
-              className="mt-2 inline-flex items-center justify-center gap-2 rounded-2xl border border-sky-400/40 bg-sky-500/20 px-5 py-3 font-medium text-sky-100 transition hover:border-sky-300 hover:bg-sky-400/25 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-ld-lime px-5 py-3 font-medium text-ld-ink transition-colors duration-150 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
             >
               {isStarting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
               Start Quiz
@@ -315,12 +329,12 @@ export function QuizShell() {
 
         {phase === 'in-progress' && currentQuestion ? (
           <div className="space-y-6">
-            <div className="flex flex-col gap-4 rounded-2xl border border-sky-400/15 bg-slate-950/40 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-4 rounded-lg border border-sky-400/15 bg-slate-950/40 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="mono-heading text-xs text-sky-300">Question {currentIndex + 1} / {questions.length}</p>
                 <p className="mt-2 text-lg text-slate-100">{currentQuestion.prompt}</p>
               </div>
-              <div className="rounded-2xl border border-sky-400/20 bg-slate-900/80 px-5 py-4 text-right">
+              <div className="rounded-lg border border-sky-400/20 bg-slate-900/80 px-5 py-4 text-right">
                 <p className="mono-heading text-[11px] text-slate-400">Elapsed</p>
                 <RollingTimer ms={elapsedMs} />
               </div>
@@ -333,7 +347,7 @@ export function QuizShell() {
                   type="button"
                   onClick={() => setAnswers((current) => ({ ...current, [currentQuestion.id]: key }))}
                   className={cn(
-                    'rounded-2xl border px-4 py-4 text-left transition',
+                    'rounded-lg border px-4 py-4 text-left transition',
                     selectedOption === key
                       ? 'border-sky-300 bg-sky-500/15 text-sky-50 shadow-[0_0_0_1px_rgba(125,211,252,0.25)_inset]'
                       : 'border-slate-800 bg-slate-950/40 text-slate-300 hover:border-sky-700/60 hover:bg-slate-900/80'
@@ -353,7 +367,7 @@ export function QuizShell() {
                 type="button"
                 disabled={!selectedOption || isSubmitting}
                 onClick={handleNextOrSubmit}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-sky-400/40 bg-sky-500/20 px-5 py-3 font-medium text-sky-100 transition hover:border-sky-300 hover:bg-sky-400/25 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-ld-lime px-5 py-3 font-medium text-ld-ink transition-colors duration-150 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 {isSubmitting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
                 {currentIndex === questions.length - 1 ? 'Submit Quiz' : 'Submit Answer'}
@@ -371,73 +385,58 @@ export function QuizShell() {
             </div>
 
             {result.goldenTicketCode ? (
-              <div className="relative overflow-hidden rounded-3xl border-2 border-amber-300/60 bg-gradient-to-br from-amber-300/20 via-yellow-200/15 to-amber-500/10 p-8 shadow-[0_0_60px_rgba(250,204,21,0.2)]">
-                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(105deg,transparent_40%,rgba(255,255,255,0.08)_45%,rgba(255,255,255,0.12)_50%,rgba(255,255,255,0.08)_55%,transparent_60%)] animate-[shimmer_3s_ease-in-out_infinite]" />
-                <div className="relative">
-                  <p className="mono-heading text-xs text-amber-200">Golden Ticket Unlocked</p>
-                  <h3 className="mt-3 text-4xl font-bold text-amber-50">You Won a T-Shirt!</h3>
-                  <p className="mt-1 text-2xl font-semibold text-amber-100/90">Visit the booth. Skip the small talk.</p>
-                  <p className="mt-4 max-w-2xl text-sm leading-7 text-amber-100/80">
-                    You got {result.correctAnswers} out of {result.totalQuestions} right. Show the code below at the booth to claim your t-shirt.
-                  </p>
-                  <div className="mt-6 flex flex-wrap items-center gap-4">
-                    <div className="inline-flex items-center gap-3 rounded-2xl border-2 border-amber-200/50 bg-amber-100/15 px-6 py-5 text-3xl font-bold tracking-[0.3em] text-amber-50 shadow-[0_0_30px_rgba(250,204,21,0.15)]">
-                      <Trophy className="h-7 w-7 text-amber-300" />
-                      {result.goldenTicketCode}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleDownloadTicket(result.goldenTicketCode!, result.correctAnswers, result.totalQuestions)}
-                      className="inline-flex items-center gap-2 rounded-2xl border border-amber-300/40 bg-amber-200/10 px-5 py-3 text-sm font-medium text-amber-100 transition hover:border-amber-200 hover:bg-amber-200/20"
-                    >
-                      <Download className="h-4 w-4" />
-                      Save Ticket
-                    </button>
+              <div className="rounded-xl border border-amber-300/25 bg-amber-300/[0.06] p-6">
+                <p className="mono-heading text-[10px] text-amber-200/80">Claim code</p>
+                <h3 className="mt-3 text-2xl font-semibold leading-tight text-amber-50">Nice work.</h3>
+                <p className="mt-2 max-w-xl text-sm leading-relaxed text-amber-100/70">
+                  Show this code at the booth.
+                </p>
+
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  {/* The one element that earns emphasis here -- it's what gets read out at the booth. */}
+                  <div className="rounded-lg border border-amber-200/30 bg-amber-100/10 px-5 py-3.5 font-mono text-2xl font-medium tracking-[0.2em] text-amber-50 sm:text-3xl">
+                    {result.goldenTicketCode}
                   </div>
-                  <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-amber-300/80">
-                    Limited tees. First come, first claimed. Don&apos;t sit on this.
-                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleDownloadTicket(result.goldenTicketCode!, result.correctAnswers, result.totalQuestions)}
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-4 py-3 text-sm text-white/70 transition-colors duration-150 hover:border-white/25 hover:text-white"
+                  >
+                    <Download className="h-4 w-4" />
+                    Save
+                  </button>
                 </div>
+
+                <p className="mt-4 text-xs text-amber-200/50">Limited stock, first claimed first served.</p>
               </div>
             ) : (
-              <div className="rounded-3xl border border-slate-800 bg-slate-950/45 p-6">
-                <p className="mono-heading text-xs text-slate-400">Challenge Complete</p>
-                <h3 className="mt-3 text-xl font-semibold text-slate-100">
-                  You got {result.correctAnswers} out of {result.totalQuestions} right. You needed at least {Math.min(3, result.totalQuestions)} to win.
+              <div className="rounded-xl border border-white/10 bg-white/[0.025] p-6">
+                <p className="mono-heading text-[10px] text-white/50">Challenge Complete</p>
+                <h3 className="mt-3 text-xl font-semibold leading-tight text-white">
+                  {result.correctAnswers} of {result.totalQuestions}. You needed {Math.min(CORRECT_TO_WIN, result.totalQuestions)}.
                 </h3>
-                <p className="mt-2 text-sm text-slate-400">
-                  Swing by the booth anyway — strong engineers are always worth talking to.
+                <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/60">
+                  All of this is load-bearing in a real streaming engine. The release below is a decent place to see why.
                 </p>
+
+                {result.missedPrompts.length > 0 ? (
+                  <ul className="mt-5 grid gap-2">
+                    {result.missedPrompts.map((prompt) => (
+                      <li
+                        key={prompt}
+                        className="flex items-start gap-2.5 rounded-lg border border-white/[0.08] bg-white/[0.025] px-3 py-2.5 text-[13px] leading-relaxed text-white/60"
+                      >
+                        <span className="mono-heading mt-0.5 shrink-0 text-[9px] text-white/35">Missed</span>
+                        {prompt}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
             )}
 
-            <div className="rounded-3xl border border-sky-400/15 bg-slate-950/40 p-6 text-center">
-              <p className="text-sm font-medium text-slate-200">
-                Curious why Apache Iggy is called the Kafka killer?
-              </p>
-              <p className="mt-1 text-xs text-slate-400">
-                Discover how Iggy delivers 10x throughput with zero JVM overhead.
-              </p>
-              <div className="mt-4 flex items-center justify-center gap-3">
-                <a
-                  href="https://iggy.apache.org"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-sky-400/30 bg-sky-500/15 px-5 py-2.5 text-sm font-medium text-sky-100 transition hover:border-sky-300 hover:bg-sky-400/25"
-                >
-                  Explore Apache Iggy
-                </a>
-                <a 
-                  href="https://laserdata.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-2xl border border-sky-400/30 bg-sky-500/15 px-5 py-2.5 text-sm font-medium text-sky-100 transition hover:border-sky-300 hover:bg-sky-400/25"
-                >
-                  About
-                  <img src="/laserdata-logo.svg" alt="LaserData" className="inline-block h-[14px] w-auto align-middle" />
-                </a>
-              </div>
-            </div>
+            <LaserDataCloudCard />
+            <IggyReleaseStrip />
           </div>
         ) : null}
       </section>
@@ -461,7 +460,7 @@ function LeadInput(props: {
         {props.label}
         {props.required ? <span className="text-rose-400"> *</span> : null}
       </span>
-      <span className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/55 px-4 py-3 text-sm text-slate-200">
+      <span className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-950/55 px-4 py-3 text-sm text-slate-200">
         <span className="text-sky-300">{props.icon}</span>
         <input
           type={props.type ?? 'text'}
@@ -478,7 +477,7 @@ function LeadInput(props: {
 
 function MetricCard(props: { label: string; value: string; icon: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-sky-400/15 bg-slate-950/40 p-4">
+    <div className="rounded-lg border border-sky-400/15 bg-slate-950/40 p-4">
       <p className="mono-heading flex items-center gap-2 text-[11px] text-slate-400">
         {props.icon}
         {props.label}

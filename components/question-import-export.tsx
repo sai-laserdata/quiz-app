@@ -70,13 +70,13 @@ export function QuestionImportExport() {
         <button
           type="button"
           onClick={handleExport}
-          className="inline-flex items-center gap-2 rounded-2xl border border-sky-400/40 bg-sky-500/20 px-4 py-3 text-sm text-sky-100 transition hover:border-sky-300 hover:bg-sky-400/25"
+          className="inline-flex items-center gap-2 rounded-lg border border-sky-400/40 bg-sky-500/20 px-4 py-3 text-sm text-sky-100 transition hover:border-sky-300 hover:bg-sky-400/25"
         >
           <Download className="h-4 w-4" />
           Export Questions as JSON
         </button>
 
-        <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm text-amber-100 transition hover:border-amber-300/50 hover:bg-amber-300/15">
+        <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm text-amber-100 transition hover:border-amber-300/50 hover:bg-amber-300/15">
           {isImporting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
           Import Questions from JSON
           <input

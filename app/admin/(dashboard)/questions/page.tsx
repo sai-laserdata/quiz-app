@@ -2,12 +2,16 @@ import { deleteQuestionAction, upsertQuestionAction } from '@/lib/admin/actions'
 import { getAllQuestions } from '@/lib/quiz/data';
 import { QuestionImportExport } from '@/components/question-import-export';
 
+// Auth-gated and per-request: never prerender this at build time, which would
+// otherwise bake participant data into static HTML.
+export const dynamic = 'force-dynamic';
+
 export default async function AdminQuestionsPage() {
   const questions = await getAllQuestions();
 
   return (
     <div className="space-y-8">
-      <section className="tech-panel rounded-[2rem] p-6">
+      <section className="tech-panel rounded-xl p-6">
         <p className="mono-heading text-xs text-slate-400">Bulk Operations</p>
         <h2 className="mt-3 text-2xl font-semibold text-slate-50">Import or export questions</h2>
         <div className="mt-4">
@@ -15,7 +19,7 @@ export default async function AdminQuestionsPage() {
         </div>
       </section>
 
-      <section className="tech-panel rounded-[2rem] p-6">
+      <section className="tech-panel rounded-xl p-6">
         <p className="mono-heading text-xs text-slate-400">Create Question</p>
         <h2 className="mt-3 text-2xl font-semibold text-slate-50">Add a new question</h2>
         <QuestionForm action={upsertQuestionAction} />
@@ -28,14 +32,14 @@ export default async function AdminQuestionsPage() {
         </div>
 
         {questions.map((question) => (
-          <div key={`${question.id}-${question.correctOption}-${question.isActive}`} className="tech-panel rounded-[2rem] p-6">
+          <div key={`${question.id}-${question.correctOption}-${question.isActive}`} className="tech-panel rounded-xl p-6">
             <QuestionForm action={upsertQuestionAction} question={question} />
 
             <form action={deleteQuestionAction} className="mt-4">
               <input type="hidden" name="id" value={question.id} />
               <button
                 type="submit"
-                className="rounded-2xl border border-rose-400/35 bg-rose-500/10 px-4 py-2 text-sm text-rose-100 transition hover:border-rose-300 hover:bg-rose-500/15"
+                className="rounded-lg border border-rose-400/35 bg-rose-500/10 px-4 py-2 text-sm text-rose-100 transition hover:border-rose-300 hover:bg-rose-500/15"
               >
                 Delete Question
               </button>
@@ -80,7 +84,7 @@ function QuestionForm(props: {
           <select
             name="correct_option"
             defaultValue={props.question?.correctOption ?? 'A'}
-            className="rounded-2xl border border-slate-800 bg-slate-950/55 px-4 py-3 text-sm text-slate-200 outline-none"
+            className="rounded-lg border border-slate-800 bg-slate-950/55 px-4 py-3 text-sm text-slate-200 outline-none"
           >
             <option value="A">A</option>
             <option value="B">B</option>
@@ -89,7 +93,7 @@ function QuestionForm(props: {
           </select>
         </label>
 
-        <label className="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/45 px-4 py-3 text-sm text-slate-300">
+        <label className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-950/45 px-4 py-3 text-sm text-slate-300">
           <input
             type="checkbox"
             name="is_active"
@@ -103,7 +107,7 @@ function QuestionForm(props: {
       <div>
         <button
           type="submit"
-          className="rounded-2xl border border-sky-400/40 bg-sky-500/20 px-5 py-3 text-sm font-medium text-sky-100 transition hover:border-sky-300 hover:bg-sky-400/25"
+          className="rounded-lg border border-sky-400/40 bg-sky-500/20 px-5 py-3 text-sm font-medium text-sky-100 transition hover:border-sky-300 hover:bg-sky-400/25"
         >
           {props.question ? 'Save Changes' : 'Create Question'}
         </button>
@@ -120,7 +124,7 @@ function Field(props: { label: string; name: string; defaultValue: string }) {
         required
         name={props.name}
         defaultValue={props.defaultValue}
-        className="rounded-2xl border border-slate-800 bg-slate-950/55 px-4 py-3 text-sm text-slate-200 outline-none placeholder:text-slate-600"
+        className="rounded-lg border border-slate-800 bg-slate-950/55 px-4 py-3 text-sm text-slate-200 outline-none placeholder:text-slate-600"
       />
     </label>
   );

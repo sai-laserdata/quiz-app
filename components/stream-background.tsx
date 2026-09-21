@@ -11,20 +11,17 @@ type StreamLine = {
   side: 'left' | 'right';
 };
 
+// Single-hue, low alpha: the background is subordinate to the content.
 const COLORS = [
-  'rgba(168, 85, 247, 0.4)',   // purple
-  'rgba(139, 92, 246, 0.35)',  // violet
-  'rgba(59, 130, 246, 0.35)',  // blue
-  'rgba(56, 189, 248, 0.3)',   // cyan
-  'rgba(236, 72, 153, 0.3)',   // pink
-  'rgba(192, 132, 252, 0.25)', // light purple
-  'rgba(96, 165, 250, 0.3)',   // light blue
-  'rgba(244, 114, 182, 0.25)', // light pink
+  'rgba(82, 234, 253, 0.10)',
+  'rgba(82, 234, 253, 0.07)',
+  'rgba(34, 211, 238, 0.08)',
+  'rgba(255, 255, 255, 0.05)'
 ];
 
 function createStreamLines(width: number, height: number): StreamLine[] {
   const lines: StreamLine[] = [];
-  const lineCount = 28;
+  const lineCount = 14;
   const centerX = width / 2;
   const centerY = height / 2;
 
@@ -50,7 +47,7 @@ function createStreamLines(width: number, height: number): StreamLine[] {
       speed: 0.3 + Math.random() * 0.7,
       offset: Math.random() * Math.PI * 2,
       color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      width: 0.5 + Math.random() * 1.5,
+      width: 0.4 + Math.random() * 0.7,
       side,
     });
   }
@@ -78,11 +75,11 @@ function drawCurve(
   const px = invT * invT * points[0].x + 2 * invT * t * points[1].x + t * t * points[2].x;
   const py = invT * invT * points[0].y + 2 * invT * t * points[1].y + t * t * points[2].y;
 
-  const gradient = ctx.createRadialGradient(px, py, 0, px, py, 6);
-  gradient.addColorStop(0, color.replace(/[\d.]+\)$/, '0.8)'));
+  const gradient = ctx.createRadialGradient(px, py, 0, px, py, 4);
+  gradient.addColorStop(0, color.replace(/[\d.]+\)$/, '0.28)'));
   gradient.addColorStop(1, color.replace(/[\d.]+\)$/, '0)'));
   ctx.beginPath();
-  ctx.arc(px, py, 6, 0, Math.PI * 2);
+  ctx.arc(px, py, 4, 0, Math.PI * 2);
   ctx.fillStyle = gradient;
   ctx.fill();
 }
@@ -99,11 +96,18 @@ export function StreamBackground() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+
     function resize() {
-      if (!canvas) return;
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      linesRef.current = createStreamLines(canvas.width, canvas.height);
+      if (!canvas || !ctx) return;
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      linesRef.current = createStreamLines(w, h);
     }
 
     resize();
@@ -125,7 +129,16 @@ export function StreamBackground() {
       animRef.current = requestAnimationFrame(animate);
     }
 
-    animRef.current = requestAnimationFrame(animate);
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    if (reduceMotion) {
+      // Paint one static frame instead of animating.
+      for (const line of linesRef.current) {
+        drawCurve(ctx, line.points, line.color, line.width, 0);
+      }
+    } else {
+      animRef.current = requestAnimationFrame(animate);
+    }
 
     return () => {
       window.removeEventListener('resize', resize);

@@ -33,7 +33,7 @@ export function LeaderboardTable({ entries }: { entries: Entry[] }) {
 
   return (
     <>
-      <div className="mt-6 flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-950/55 px-4 py-3 text-sm text-slate-200">
+      <div className="mt-6 flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-950/55 px-4 py-3 text-sm text-slate-200">
         <Search className="h-4 w-4 text-sky-300" />
         <input
           type="text"
@@ -49,7 +49,7 @@ export function LeaderboardTable({ entries }: { entries: Entry[] }) {
           No results found for &ldquo;{query}&rdquo;
         </p>
       ) : (
-        <div className="mt-4 overflow-hidden rounded-3xl border border-slate-800">
+        <div className="mt-4 overflow-x-auto rounded-xl border border-slate-800">
           <table className="min-w-full divide-y divide-slate-800 text-left text-sm">
             <thead className="bg-slate-950/70 text-slate-400">
               <tr>

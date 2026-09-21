@@ -1,9 +1,11 @@
 import { redirect } from 'next/navigation';
 import { createServerSupabaseClient, createServiceRoleClient } from '@/lib/supabase/server';
-import { hasSupabaseEnv } from '@/lib/supabase/env';
+import { shouldUseDemoStore } from '@/lib/supabase/env';
 
 export async function getAuthenticatedUserId() {
-  if (!hasSupabaseEnv()) {
+  // Throws outside development when Supabase is unconfigured, rather than
+  // handing out admin access.
+  if (shouldUseDemoStore()) {
     return 'demo-admin';
   }
 
@@ -16,7 +18,7 @@ export async function getAuthenticatedUserId() {
 }
 
 export async function isUserAdmin(userId: string) {
-  if (!hasSupabaseEnv()) {
+  if (shouldUseDemoStore()) {
     return true;
   }
 
