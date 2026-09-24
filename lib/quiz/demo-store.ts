@@ -4,9 +4,9 @@ import { randomUUID } from 'crypto';
 import { sampleParticipants, sampleQuestions } from '@/lib/quiz/sample-data';
 import { elapsedSince, pickServedAnswers, scoreQuiz } from '@/lib/quiz/scoring';
 import { QuizRequestError } from '@/lib/quiz/errors';
-import { generateGoldenTicketCode, normalizeEmail } from '@/lib/utils';
-import { MAX_ATTEMPTS_PER_EMAIL, QUESTIONS_PER_QUIZ, pickRandom } from '@/lib/quiz/config';
-import type { AdminParticipant, LeadFormValues, QuestionOptionKey, QuizQuestion, QuizResult } from '@/lib/types';
+import { generateGoldenTicketCode, sanitizePlayerName } from '@/lib/utils';
+import { QUESTIONS_PER_QUIZ, pickRandom } from '@/lib/quiz/config';
+import type { AdminParticipant, PlayerFormValues, QuestionOptionKey, QuizQuestion, QuizResult } from '@/lib/types';
 
 type DemoAttempt = {
   id: string;
@@ -150,23 +150,49 @@ export async function getDemoParticipants() {
     }));
 }
 
-export async function hasDemoSubmittedAttempt(email: string): Promise<boolean> {
+export async function getDemoAttemptSnapshot(attemptId: string) {
   const store = await readStore();
-  return store.attempts.some(
-    (attempt) => normalizeEmail(attempt.email) === normalizeEmail(email) && attempt.submittedAt !== null
-  );
+  const attempt = store.attempts.find((entry) => entry.id === attemptId);
+
+  if (!attempt || !attempt.submittedAt) {
+    return null;
+  }
+
+  const questionsById = new Map(store.questions.map((question) => [question.id, question]));
+  const missedPrompts = (attempt.servedQuestionIds ?? [])
+    .map((questionId) => questionsById.get(questionId))
+    .filter((question): question is QuizQuestion => Boolean(question))
+    .filter((question) => attempt.answers[question.id] !== question.correctOption)
+    .map((question) => question.prompt);
+
+  return {
+    name: attempt.name,
+    result: {
+      attemptId: attempt.id,
+      correctAnswers: attempt.correctAnswers,
+      totalQuestions: attempt.totalQuestions,
+      scorePercentage: attempt.scorePercentage,
+      elapsedMs: attempt.timeTakenMs ?? 0,
+      goldenTicketCode: attempt.goldenTicketCode,
+      missedPrompts
+    }
+  };
 }
 
-export async function startDemoAttempt(lead: LeadFormValues) {
+export async function setDemoAttemptName(attemptId: string, name: string) {
   const store = await readStore();
+  const attempt = store.attempts.find((entry) => entry.id === attemptId);
 
-  const existingAttempts = store.attempts.filter(
-    (attempt) => normalizeEmail(attempt.email) === normalizeEmail(lead.email)
-  ).length;
-
-  if (existingAttempts >= MAX_ATTEMPTS_PER_EMAIL) {
-    throw new QuizRequestError('Too many quiz attempts for this email address.', 429);
+  if (!attempt) {
+    throw new QuizRequestError('Unknown quiz attempt.', 404);
   }
+
+  attempt.name = sanitizePlayerName(name);
+  await writeStore(store);
+}
+
+export async function startDemoAttempt(player: PlayerFormValues) {
+  const store = await readStore();
 
   const attemptId = randomUUID();
   const allQuestions = store.questions.filter((question) => question.isActive).sort((left, right) => left.position - right.position);
@@ -174,10 +200,10 @@ export async function startDemoAttempt(lead: LeadFormValues) {
 
   store.attempts.push({
     id: attemptId,
-    name: lead.name,
-    email: lead.email,
-    linkedinUrl: lead.linkedinUrl,
-    company: lead.company,
+    name: player.name,
+    email: '',
+    linkedinUrl: '',
+    company: '',
     startedAt: new Date().toISOString(),
     submittedAt: null,
     timeTakenMs: null,

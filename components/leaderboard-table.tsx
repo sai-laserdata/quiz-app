@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Medal, Search, TimerReset, Trash2 } from 'lucide-react';
 import { deleteParticipantAction } from '@/lib/admin/actions';
-import { formatDuration, formatScore } from '@/lib/utils';
+import { cn, displayName, formatDuration, formatScore } from '@/lib/utils';
 
 type Entry = {
   id: string;
@@ -24,7 +24,7 @@ export function LeaderboardTable({ entries }: { entries: Entry[] }) {
     ? entries.filter((e) => {
         const q = query.toLowerCase();
         return (
-          e.name.toLowerCase().includes(q) ||
+          displayName(e.name).toLowerCase().includes(q) ||
           e.company.toLowerCase().includes(q) ||
           (e.goldenTicketCode && e.goldenTicketCode.toLowerCase().includes(q))
         );
@@ -72,7 +72,9 @@ export function LeaderboardTable({ entries }: { entries: Entry[] }) {
                       {entry.rank}
                     </span>
                   </td>
-                  <td className="px-4 py-3">{entry.name}</td>
+                  <td className={cn('px-4 py-3', entry.name.trim() ? undefined : 'italic text-slate-500')}>
+                    {displayName(entry.name)}
+                  </td>
                   <td className="px-4 py-3">{entry.company}</td>
                   <td className="px-4 py-3">
                     {entry.correctAnswers}/{entry.totalQuestions}
@@ -97,7 +99,7 @@ export function LeaderboardTable({ entries }: { entries: Entry[] }) {
                       <button
                         type="submit"
                         className="rounded-lg p-1.5 text-slate-500 transition hover:bg-red-500/10 hover:text-red-400"
-                        title={`Delete ${entry.name}`}
+                        title={`Delete ${displayName(entry.name)}`}
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>

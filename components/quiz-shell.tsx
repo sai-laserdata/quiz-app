@@ -1,37 +1,34 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { BadgeCheck, Building2, Clock3, Download, Linkedin, LoaderCircle, Mail, Play, Trophy, UserRound } from 'lucide-react';
+import { BadgeCheck, Clock3, Download, LoaderCircle, Play, Trophy, UserRound } from 'lucide-react';
 
-import { cn, formatDuration, formatScore } from '@/lib/utils';
-import { CORRECT_TO_WIN } from '@/lib/quiz/config';
+import { cn, firstNameOf, formatDuration, formatScore } from '@/lib/utils';
+import { CORRECT_TO_WIN, NAME_MAX_LENGTH } from '@/lib/quiz/config';
+import { FollowRow } from '@/components/follow-links';
 import { IggyReleaseStrip } from '@/components/iggy-release';
 import { LaserDataCloudCard } from '@/components/laserdata-cloud';
-import type { LeadFormValues, QuestionOptionKey, QuizQuestionPublic, QuizResult, QuizStartResponse } from '@/lib/types';
+import type {
+  AlreadyPlayedResponse,
+  QuestionOptionKey,
+  QuizQuestionPublic,
+  QuizResult,
+  QuizStartResponse
+} from '@/lib/types';
 
-type QuizPhase = 'lead-capture' | 'in-progress' | 'complete';
+type QuizPhase = 'intro' | 'in-progress' | 'complete' | 'already-played';
 
 const isDemoMode = !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-const LINKEDIN_PREFIX = 'https://www.linkedin.com/in/';
-
-const initialLeadForm: LeadFormValues = isDemoMode
-  ? {
-      name: 'Ada Lovelace',
-      email: 'ada.lovelace@gmail.com',
-      linkedinUrl: 'ada-lovelace',
-      company: ''
-    }
-  : {
-      name: '',
-      email: '',
-      linkedinUrl: '',
-      company: ''
-    };
-
 export function QuizShell() {
-  const [phase, setPhase] = useState<QuizPhase>('lead-capture');
-  const [lead, setLead] = useState<LeadFormValues>(initialLeadForm);
+  const [phase, setPhase] = useState<QuizPhase>('intro');
+  // What they typed on the way in, and the name the run is actually recorded
+  // under. They diverge when someone adds a name at the finish instead.
+  const [nameInput, setNameInput] = useState('');
+  const [playerName, setPlayerName] = useState('');
+  /** The finished run this device is already carrying, shown before a restart. */
+  const [previousRun, setPreviousRun] = useState<{ name: string; result: QuizResult } | null>(null);
+  const [isSavingName, setIsSavingName] = useState(false);
   const [questions, setQuestions] = useState<QuizQuestionPublic[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, QuestionOptionKey>>({});
@@ -71,30 +68,41 @@ export function QuizShell() {
 
   async function handleStartQuiz(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    await startRun(false);
+  }
+
+  async function startRun(restart: boolean) {
     setIsStarting(true);
     setErrorMessage(null);
 
     try {
-      const requestBody = {
-        lead: {
-          ...lead,
-          linkedinUrl: lead.linkedinUrl.trim() ? LINKEDIN_PREFIX + lead.linkedinUrl.trim() : ''
-        }
-      };
       const response = await fetch('/api/quiz/start', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({ player: { name: nameInput.trim() }, restart })
       });
 
       if (!response.ok) {
         const body = await response.json().catch(() => null);
+
+        // This browser already has a finished run. Name it for whoever is
+        // holding the device now: their own result if they came back for the
+        // claim code, or a stranger's if the tablet just changed hands.
+        if (response.status === 409 && body?.alreadyPlayed) {
+          const played = body as AlreadyPlayedResponse;
+          setPreviousRun({ name: played.name, result: played.result });
+          setPhase('already-played');
+          return;
+        }
+
         throw new Error(body?.error ?? 'Unable to start the quiz. Please try again.');
       }
 
       const payload = (await response.json()) as QuizStartResponse;
+      setPreviousRun(null);
+      setPlayerName(nameInput.trim());
       setAttemptId(payload.attemptId);
       setQuestions(payload.questions);
       setAnswers({});
@@ -162,20 +170,42 @@ export function QuizShell() {
     }
   }
 
-  function updateLeadField(field: keyof LeadFormValues, value: string) {
-    setLead((current) => ({
-      ...current,
-      [field]: value
-    }));
+  async function handleSaveName(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const name = nameInput.trim();
+
+    if (!name || !attemptId) {
+      return;
+    }
+
+    setIsSavingName(true);
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch('/api/quiz/name', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ attemptId, name })
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error ?? 'Unable to save your name.');
+      }
+
+      const payload = (await response.json()) as { name: string };
+      setPlayerName(payload.name);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Unable to save your name.');
+    } finally {
+      setIsSavingName(false);
+    }
   }
 
-  const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(lead.email);
-  const isValidLinkedin = /^[a-zA-Z0-9\-]+$/.test(lead.linkedinUrl.trim());
-
-  const canStartQuiz =
-    lead.name.trim().length > 1 &&
-    isValidEmail &&
-    isValidLinkedin;
+  const firstName = firstNameOf(playerName);
 
   function handleDownloadTicket(code: string, correct: number, total: number) {
     const canvas = document.createElement('canvas');
@@ -255,70 +285,36 @@ export function QuizShell() {
       <section className="tech-panel rounded-xl p-8">
         <div className="mb-6 space-y-3">
           <h2 className="text-2xl font-semibold text-white">LaserData Quiz</h2>
-          {phase === 'lead-capture' ? (
+          {phase === 'intro' ? (
             <>
               <p className="max-w-2xl text-sm leading-7 text-slate-300">
                 Real streaming-system scenarios. Forward-only, against the clock.
               </p>
               {isDemoMode ? (
                 <p className="rounded-lg border border-amber-300/20 bg-amber-300/10 px-4 py-3 text-sm text-amber-100">
-                  Demo mode is active. The attendee fields are pre-filled so you can start the quiz immediately.
+                  Demo mode is active. Attempts are written to a local file instead of Supabase.
                 </p>
               ) : null}
             </>
           ) : null}
         </div>
 
-        {phase === 'lead-capture' ? (
+        {phase === 'intro' ? (
           <form className="grid gap-4" onSubmit={handleStartQuiz}>
-            <LeadInput
-              icon={<UserRound className="h-4 w-4" />}
-              label="Full Name"
+            {/* One field, and even this one is skippable. Nothing here blocks Start. */}
+            <NameInput
+              label="Your name"
               placeholder="Ada Lovelace"
-              value={lead.name}
-              required
-              onChange={(value) => updateLeadField('name', value)}
-            />
-            <LeadInput
-              icon={<Mail className="h-4 w-4" />}
-              label="Email"
-              placeholder="you@company.com"
-              value={lead.email}
-              type="email"
-              required
-              onChange={(value) => updateLeadField('email', value)}
-              hint={lead.email && lead.email.includes('@') && !isValidEmail ? 'Please enter a valid email address.' : undefined}
-            />
-            <label className="grid gap-2">
-              <span className="mono-heading text-[11px] text-slate-400">LinkedIn Username<span className="text-rose-400"> *</span></span>
-              <span className="flex items-center gap-0 rounded-lg border border-slate-800 bg-slate-950/55 text-sm text-slate-200">
-                <span className="flex items-center gap-2 pl-4 text-slate-500">
-                  <Linkedin className="h-4 w-4 text-sky-300" />
-                  <span className="whitespace-nowrap">linkedin.com/in/</span>
-                </span>
-                <input
-                  type="text"
-                  value={lead.linkedinUrl}
-                  onChange={(e) => updateLeadField('linkedinUrl', e.target.value)}
-                  placeholder="your-username"
-                  className="w-full bg-transparent px-1 py-3 outline-none placeholder:text-slate-600"
-                />
-              </span>
-              <span className="text-xs text-slate-500">Share your LinkedIn so we can connect and follow up after the conference.</span>
-            </label>
-            <LeadInput
-              icon={<Building2 className="h-4 w-4" />}
-              label="Company (optional)"
-              placeholder="Kernel Labs"
-              value={lead.company}
-              onChange={(value) => updateLeadField('company', value)}
+              value={nameInput}
+              onChange={setNameInput}
+              hint="Optional. We only use it to say hi and to put you on the booth leaderboard — no email, no signup."
             />
 
             {errorMessage ? <p className="text-sm text-rose-300">{errorMessage}</p> : null}
 
             <button
               type="submit"
-              disabled={!canStartQuiz || isStarting}
+              disabled={isStarting}
               className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-ld-lime px-5 py-3 font-medium text-ld-ink transition-colors duration-150 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
             >
               {isStarting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
@@ -327,10 +323,73 @@ export function QuizShell() {
           </form>
         ) : null}
 
+        {phase === 'already-played' && previousRun ? (
+          <div className="space-y-6">
+            <div className="rounded-xl border border-white/10 bg-white/[0.025] p-6">
+              <p className="mono-heading text-[10px] text-white/50">Already played</p>
+              <h3 className="mt-3 text-xl font-semibold leading-tight text-white">
+                {previousRun.name.trim()
+                  ? `${previousRun.name} already played on this device.`
+                  : 'This device already has a finished run.'}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-white/60">
+                {previousRun.result.correctAnswers} of {previousRun.result.totalQuestions} correct in{' '}
+                {formatDuration(previousRun.result.elapsedMs)}.
+              </p>
+
+              {previousRun.result.goldenTicketCode ? (
+                <div className="mt-5 flex flex-wrap items-center gap-3">
+                  <div className="rounded-lg border border-amber-200/30 bg-amber-100/10 px-4 py-3 font-mono text-xl font-medium tracking-[0.2em] text-amber-50">
+                    {previousRun.result.goldenTicketCode}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleDownloadTicket(
+                        previousRun.result.goldenTicketCode!,
+                        previousRun.result.correctAnswers,
+                        previousRun.result.totalQuestions
+                      )
+                    }
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-4 py-3 text-sm text-white/70 transition-colors duration-150 hover:border-white/25 hover:text-white"
+                  >
+                    <Download className="h-4 w-4" />
+                    Save
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
+            {/* The booth tablet gets passed around. Whoever is holding it now
+                should be able to play without going to find staff. */}
+            <div className="space-y-3 border-t border-white/[0.08] pt-5">
+              <p className="text-sm text-white/60">
+                Someone else&rsquo;s turn?{nameInput.trim() ? ` We’ll start a fresh run for ${nameInput.trim()}.` : ''}
+              </p>
+
+              {errorMessage ? <p className="text-sm text-rose-300">{errorMessage}</p> : null}
+
+              <button
+                type="button"
+                disabled={isStarting}
+                onClick={() => startRun(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-ld-lime px-5 py-3 font-medium text-ld-ink transition-colors duration-150 hover:bg-white disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {isStarting ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                Start a new run
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         {phase === 'in-progress' && currentQuestion ? (
           <div className="space-y-6">
             <div className="flex flex-col gap-4 rounded-lg border border-sky-400/15 bg-slate-950/40 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div>
+                {/* Once, on the way in. A greeting on every screen stops reading as warmth. */}
+                {firstName && currentIndex === 0 ? (
+                  <p className="mb-1.5 text-sm text-slate-400">Hey {firstName} &mdash; here we go.</p>
+                ) : null}
                 <p className="mono-heading text-xs text-sky-300">Question {currentIndex + 1} / {questions.length}</p>
                 <p className="mt-2 text-lg text-slate-100">{currentQuestion.prompt}</p>
               </div>
@@ -387,7 +446,9 @@ export function QuizShell() {
             {result.goldenTicketCode ? (
               <div className="rounded-xl border border-amber-300/25 bg-amber-300/[0.06] p-6">
                 <p className="mono-heading text-[10px] text-amber-200/80">Claim code</p>
-                <h3 className="mt-3 text-2xl font-semibold leading-tight text-amber-50">Nice work.</h3>
+                <h3 className="mt-3 text-2xl font-semibold leading-tight text-amber-50">
+                  {firstName ? `Nice work, ${firstName}.` : 'Nice work.'}
+                </h3>
                 <p className="mt-2 max-w-xl text-sm leading-relaxed text-amber-100/70">
                   Show this code at the booth.
                 </p>
@@ -435,6 +496,35 @@ export function QuizShell() {
               </div>
             )}
 
+            {!playerName.trim() ? (
+              <form className="space-y-2.5" onSubmit={handleSaveName}>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <input
+                    type="text"
+                    value={nameInput}
+                    maxLength={NAME_MAX_LENGTH}
+                    onChange={(event) => setNameInput(event.target.value)}
+                    placeholder="Your name"
+                    aria-label="Your name"
+                    className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.025] px-4 py-2.5 text-sm text-white outline-none transition-colors duration-150 placeholder:text-white/30 focus:border-white/25"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!nameInput.trim() || isSavingName}
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-4 py-2.5 text-sm text-white/70 transition-colors duration-150 hover:border-white/25 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    {isSavingName ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+                    Add to leaderboard
+                  </button>
+                </div>
+                <p className="text-xs text-white/40">Optional &mdash; puts you on the booth board.</p>
+              </form>
+            ) : (
+              <p className="text-xs text-white/40">You&rsquo;re on the board as {playerName}.</p>
+            )}
+
+            <FollowRow firstName={firstName} />
+
             <LaserDataCloudCard />
             <IggyReleaseStrip />
           </div>
@@ -444,33 +534,30 @@ export function QuizShell() {
   );
 }
 
-function LeadInput(props: {
+function NameInput(props: {
   label: string;
   placeholder: string;
   value: string;
-  icon: React.ReactNode;
-  type?: string;
   hint?: string;
-  required?: boolean;
   onChange: (value: string) => void;
 }) {
   return (
     <label className="grid gap-2">
-      <span className="mono-heading text-[11px] text-slate-400">
-        {props.label}
-        {props.required ? <span className="text-rose-400"> *</span> : null}
-      </span>
+      <span className="mono-heading text-[11px] text-slate-400">{props.label}</span>
       <span className="flex items-center gap-3 rounded-lg border border-slate-800 bg-slate-950/55 px-4 py-3 text-sm text-slate-200">
-        <span className="text-sky-300">{props.icon}</span>
+        <span className="text-sky-300">
+          <UserRound className="h-4 w-4" />
+        </span>
         <input
-          type={props.type ?? 'text'}
+          type="text"
           value={props.value}
+          maxLength={NAME_MAX_LENGTH}
           onChange={(event) => props.onChange(event.target.value)}
           placeholder={props.placeholder}
           className="w-full bg-transparent outline-none placeholder:text-slate-600"
         />
       </span>
-      {props.hint ? <span className="text-xs text-rose-300">{props.hint}</span> : null}
+      {props.hint ? <span className="text-xs text-slate-500">{props.hint}</span> : null}
     </label>
   );
 }

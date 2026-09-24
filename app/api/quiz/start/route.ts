@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
-import { hasSubmittedAttempt, startQuizAttempt } from '@/lib/quiz/data';
+import { getAttemptSnapshot, startQuizAttempt } from '@/lib/quiz/data';
 import { QuizRequestError } from '@/lib/quiz/errors';
 import { consumeRateLimit } from '@/lib/quiz/rate-limit';
+import { attachAttemptCookie, readAttemptCookie } from '@/lib/quiz/player-session';
 import { START_RATE_LIMIT, START_RATE_WINDOW_MS } from '@/lib/quiz/config';
-import type { QuizStartPayload } from '@/lib/types';
+import { sanitizePlayerName } from '@/lib/utils';
+import type { AlreadyPlayedResponse, QuizStartPayload } from '@/lib/types';
 
 export async function POST(request: Request) {
   // Coarse burst guard. Not keyed on IP: a conference shares one NAT, so an IP
@@ -18,27 +20,32 @@ export async function POST(request: Request) {
   }
 
   try {
-    const payload = (await request.json()) as QuizStartPayload;
-    const lead = payload.lead;
+    const payload = (await request.json().catch(() => null)) as QuizStartPayload | null;
+    const existingAttemptId = readAttemptCookie(request);
 
-    if (!lead?.name || !lead?.email) {
-      return NextResponse.json({ error: 'Name and email are required.' }, { status: 400 });
+    // One attempt per browser. A finished run hands the result straight back
+    // rather than erroring -- people close the tab and come looking for their
+    // claim code, and the next person at a shared tablet deserves an
+    // explanation rather than a stranger's score. An unfinished attempt is an
+    // abandoned or refreshed run, so it falls through to a fresh one.
+    if (existingAttemptId && !payload?.restart) {
+      const snapshot = await getAttemptSnapshot(existingAttemptId);
+
+      if (snapshot) {
+        const body: AlreadyPlayedResponse = {
+          alreadyPlayed: true,
+          name: snapshot.name,
+          result: snapshot.result
+        };
+        return NextResponse.json(body, { status: 409 });
+      }
     }
 
-    // Default optional fields
-    lead.linkedinUrl = lead.linkedinUrl || '';
-    lead.company = lead.company || '';
+    // The name is optional, and so is the whole payload. Nothing here can block a start.
+    const player = { name: sanitizePlayerName(payload?.player?.name) };
 
-    const alreadyTaken = await hasSubmittedAttempt(lead.email);
-    if (alreadyTaken) {
-      return NextResponse.json(
-        { error: "You've already taken the quiz. Each participant gets one attempt." },
-        { status: 409 }
-      );
-    }
-
-    const result = await startQuizAttempt(lead);
-    return NextResponse.json(result);
+    const result = await startQuizAttempt(player);
+    return attachAttemptCookie(NextResponse.json(result), result.attemptId);
   } catch (error) {
     if (error instanceof QuizRequestError) {
       return NextResponse.json({ error: error.message }, { status: error.status });

@@ -62,10 +62,11 @@ export default async function AdminParticipantsPage() {
                 <tr key={participant.id}>
                   <td className="px-4 py-3">{participant.name}</td>
                   <td className="px-4 py-3">{participant.company}</td>
-                  <td className="px-4 py-3">{participant.email}</td>
+                  {/* Legacy columns: populated only for attempts taken while the entry form existed. */}
+                  <td className="px-4 py-3">{participant.email || '—'}</td>
                   <td className="px-4 py-3">
                     {participant.linkedinUrl ? (
-                      <a href={participant.linkedinUrl} target="_blank" rel="noreferrer" className="text-sky-300 hover:text-sky-200">
+                      <a href={participant.linkedinUrl} target="_blank" rel="noopener noreferrer" className="text-sky-300 hover:text-sky-200">
                         View profile
                       </a>
                     ) : '—'}

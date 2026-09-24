@@ -1,3 +1,6 @@
+import { Linkedin } from 'lucide-react';
+
+import { SOCIAL_LINKS, XIcon } from '@/components/follow-links';
 import { IGGY_RELEASE } from '@/components/iggy-release';
 import { LASERDATA_CLOUD_URL } from '@/components/laserdata-cloud';
 
@@ -43,6 +46,26 @@ export function SiteFooter() {
             github.com/apache/iggy
           </a>
           <span className="mono-heading text-[10px] text-white/50">Iggy v{IGGY_RELEASE.version}</span>
+          <span className="flex items-center gap-3">
+            <a
+              href={SOCIAL_LINKS.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="LaserData on LinkedIn"
+              className="transition-colors hover:text-white"
+            >
+              <Linkedin className="h-4 w-4" />
+            </a>
+            <a
+              href={SOCIAL_LINKS.x}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="LaserData on X"
+              className="transition-colors hover:text-white"
+            >
+              <XIcon className="h-3.5 w-3.5" />
+            </a>
+          </span>
         </div>
       </div>
     </footer>
