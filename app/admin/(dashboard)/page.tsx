@@ -1,6 +1,6 @@
 import { Clock3, Trophy, UsersRound } from 'lucide-react';
 import { getAdminAnalytics, getLeaderboard } from '@/lib/quiz/data';
-import { formatDuration, formatScore } from '@/lib/utils';
+import { displayName, formatDuration, formatScore } from '@/lib/utils';
 
 // Auth-gated and per-request: never prerender this at build time, which would
 // otherwise bake participant data into static HTML.
@@ -41,7 +41,9 @@ export default async function AdminOverviewPage() {
               {leaderboard.slice(0, 8).map((entry) => (
                 <tr key={`${entry.rank}-${entry.name}`}>
                   <td className="px-4 py-3">{entry.rank}</td>
-                  <td className="px-4 py-3">{entry.name}</td>
+                  <td className={entry.name.trim() ? 'px-4 py-3' : 'px-4 py-3 italic text-slate-500'}>
+                    {displayName(entry.name)}
+                  </td>
                   <td className="px-4 py-3">{entry.company}</td>
                   <td className="px-4 py-3">
                     {entry.correctAnswers}/{entry.totalQuestions}

@@ -1,8 +1,15 @@
 export const QUESTIONS_PER_QUIZ = 5;
 export const CORRECT_TO_WIN = 3;
 
-/** Total attempt rows one email may create, finished or not. */
-export const MAX_ATTEMPTS_PER_EMAIL = 10;
+/** Longest name we store. Long enough for a real one, short enough for a table cell. */
+export const NAME_MAX_LENGTH = 60;
+
+/**
+ * How long the one-attempt cookie lives: a single conference day. Identity is
+ * optional now, so this cookie -- not an email address -- is what stops one
+ * person from filling the leaderboard.
+ */
+export const ATTEMPT_COOKIE_MAX_AGE_S = 12 * 60 * 60;
 
 /** Coarse burst guard on the public start endpoint. */
 export const START_RATE_LIMIT = 30;

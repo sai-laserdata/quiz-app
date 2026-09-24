@@ -16,8 +16,8 @@ create table if not exists public.questions (
 
 create table if not exists public.quiz_attempts (
   id uuid primary key default gen_random_uuid(),
-  name text not null,
-  email text not null,
+  name text not null default '',
+  email text,
   linkedin_url text not null default '',
   company text not null default '',
   started_at timestamptz not null default timezone('utc', now()),
@@ -30,8 +30,9 @@ create table if not exists public.quiz_attempts (
   -- Questions actually served for this attempt. Submission scores against this
   -- list, never against the question ids the client sends back.
   served_question_ids uuid[],
-  -- Case-insensitive identity for the one-attempt-per-person rule. `email`
-  -- keeps whatever the lead typed, for follow-up and the CSV export.
+  -- Legacy identity, from when the quiz opened with an entry form. The
+  -- one-attempt-per-person rule now runs off the `ld_quiz_attempt` cookie;
+  -- these columns are kept so the attempts already collected stay exportable.
   email_normalized text generated always as (lower(email)) stored
 );
 
@@ -183,9 +184,6 @@ set
   option_c = excluded.option_c,
   option_d = excluded.option_d,
   correct_option = excluded.correct_option;
-
-create index if not exists idx_quiz_attempts_email_submitted
-on public.quiz_attempts (email) where submitted_at is not null;
 
 create index if not exists idx_quiz_attempts_email_normalized
 on public.quiz_attempts (email_normalized);

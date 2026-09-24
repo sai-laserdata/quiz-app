@@ -3,9 +3,10 @@ import {
   clearAllDemoParticipants,
   deleteDemoParticipant,
   deleteDemoQuestion,
+  getDemoAttemptSnapshot,
   getDemoParticipants,
   getDemoQuestions,
-  hasDemoSubmittedAttempt,
+  setDemoAttemptName,
   startDemoAttempt,
   submitDemoAttempt,
   upsertDemoQuestion
@@ -17,15 +18,15 @@ import { QuizRequestError } from '@/lib/quiz/errors';
 import type {
   AdminAnalytics,
   AdminParticipant,
-  LeadFormValues,
   LeaderboardEntry,
+  PlayerFormValues,
   QuestionOptionKey,
   QuizQuestion,
   QuizResult
 } from '@/lib/types';
 
-import { MAX_ATTEMPTS_PER_EMAIL, QUESTIONS_PER_QUIZ, pickRandom } from '@/lib/quiz/config';
-import { generateGoldenTicketCode, normalizeEmail } from '@/lib/utils';
+import { QUESTIONS_PER_QUIZ, pickRandom } from '@/lib/quiz/config';
+import { generateGoldenTicketCode, sanitizePlayerName } from '@/lib/utils';
 
 const MAX_TICKET_CODE_ATTEMPTS = 5;
 
@@ -73,57 +74,121 @@ export async function getActiveQuestions() {
   return (data ?? []).map(mapQuestionRow);
 }
 
-export async function hasSubmittedAttempt(email: string): Promise<boolean> {
+/** A finished run, as handed back to someone who returns with the attempt cookie. */
+export type AttemptSnapshot = {
+  name: string;
+  result: QuizResult;
+};
+
+async function loadMissedPrompts(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  attemptId: string
+): Promise<string[]> {
+  const { data: missed, error } = await supabase
+    .from('quiz_answers')
+    .select('question_id')
+    .eq('attempt_id', attemptId)
+    .eq('is_correct', false);
+
+  if (error) {
+    throw new Error(`Failed to load missed answers: ${error.message}`);
+  }
+
+  const questionIds = (missed ?? []).map((row) => row.question_id);
+
+  if (questionIds.length === 0) {
+    return [];
+  }
+
+  const { data: rows, error: promptError } = await supabase
+    .from('questions')
+    .select('prompt')
+    .in('id', questionIds);
+
+  if (promptError) {
+    throw new Error(`Failed to load missed prompts: ${promptError.message}`);
+  }
+
+  return (rows ?? []).map((row) => row.prompt);
+}
+
+/**
+ * Replays a finished attempt. Returns null for an unknown or still-running
+ * attempt, so a mid-quiz refresh falls through to a fresh start rather than
+ * being told it already played.
+ */
+export async function getAttemptSnapshot(attemptId: string): Promise<AttemptSnapshot | null> {
   if (shouldUseDemoStore()) {
-    return hasDemoSubmittedAttempt(email);
+    return getDemoAttemptSnapshot(attemptId);
+  }
+
+  const supabase = createServiceRoleClient();
+  const { data: attempt, error } = await supabase
+    .from('quiz_attempts')
+    .select('id, name, submitted_at, time_taken_ms, correct_answers, total_questions, score_percentage, golden_ticket_code')
+    .eq('id', attemptId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to load quiz attempt: ${error.message}`);
+  }
+
+  if (!attempt || !attempt.submitted_at) {
+    return null;
+  }
+
+  return {
+    name: attempt.name ?? '',
+    result: {
+      attemptId: attempt.id,
+      correctAnswers: attempt.correct_answers,
+      totalQuestions: attempt.total_questions,
+      scorePercentage: Number(attempt.score_percentage ?? 0),
+      elapsedMs: attempt.time_taken_ms ?? 0,
+      goldenTicketCode: attempt.golden_ticket_code,
+      missedPrompts: await loadMissedPrompts(supabase, attemptId)
+    }
+  };
+}
+
+/**
+ * Names a run after the fact, for the player who skipped the field up front and
+ * decided at the finish that they want to be on the booth board.
+ */
+export async function setAttemptName(attemptId: string, name: string) {
+  const cleanName = sanitizePlayerName(name);
+
+  if (shouldUseDemoStore()) {
+    await setDemoAttemptName(attemptId, cleanName);
+    return cleanName;
   }
 
   const supabase = createServiceRoleClient();
   const { data, error } = await supabase
     .from('quiz_attempts')
-    .select('id')
-    .eq('email_normalized', normalizeEmail(email))
-    .not('submitted_at', 'is', null)
-    .limit(1);
+    .update({ name: cleanName })
+    .eq('id', attemptId)
+    .select('id');
 
   if (error) {
-    throw new Error(`Failed to check for existing attempt: ${error.message}`);
+    throw new Error(`Failed to save name: ${error.message}`);
   }
 
-  return (data ?? []).length > 0;
+  if (!data || data.length === 0) {
+    throw new QuizRequestError('Unknown quiz attempt.', 404);
+  }
+
+  return cleanName;
 }
 
-/**
- * Bounds row growth from someone repeatedly hitting "Start Quiz" without
- * finishing. Keyed on the person rather than the IP, because a conference
- * shares one NAT.
- */
-async function assertAttemptQuotaAvailable(email: string) {
-  const supabase = createServiceRoleClient();
-  const { count, error } = await supabase
-    .from('quiz_attempts')
-    .select('id', { count: 'exact', head: true })
-    .eq('email_normalized', normalizeEmail(email));
-
-  if (error) {
-    throw new Error(`Failed to check attempt quota: ${error.message}`);
-  }
-
-  if ((count ?? 0) >= MAX_ATTEMPTS_PER_EMAIL) {
-    throw new QuizRequestError('Too many quiz attempts for this email address.', 429);
-  }
-}
-
-export async function startQuizAttempt(lead: LeadFormValues) {
+export async function startQuizAttempt(player: PlayerFormValues) {
   if (shouldUseDemoStore()) {
-    const demo = await startDemoAttempt(lead);
+    const demo = await startDemoAttempt(player);
     return {
       attemptId: demo.attemptId,
       questions: demo.questions.map(({ correctOption: _correctOption, isActive: _isActive, ...question }) => question)
     };
   }
-
-  await assertAttemptQuotaAvailable(lead.email);
 
   const attemptId = randomUUID();
   const allQuestions = await getActiveQuestions();
@@ -138,10 +203,11 @@ export async function startQuizAttempt(lead: LeadFormValues) {
   const supabase = createServiceRoleClient();
   const { error } = await supabase.from('quiz_attempts').insert({
     id: attemptId,
-    name: lead.name,
-    email: lead.email,
-    linkedin_url: lead.linkedinUrl,
-    company: lead.company,
+    name: player.name,
+    // Legacy columns, kept for the attempts collected while the entry form existed.
+    email: null,
+    linkedin_url: '',
+    company: '',
     started_at: new Date().toISOString(),
     total_questions: questions.length,
     served_question_ids: questions.map((question) => question.id)
@@ -361,7 +427,7 @@ export async function getParticipants(): Promise<AdminParticipant[]> {
   return (data ?? []).map((participant) => ({
     id: participant.id,
     name: participant.name,
-    email: participant.email,
+    email: participant.email ?? '',
     linkedinUrl: participant.linkedin_url,
     company: participant.company,
     correctAnswers: participant.correct_answers,

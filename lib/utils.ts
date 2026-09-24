@@ -1,5 +1,7 @@
 import clsx from 'clsx';
 
+import { NAME_MAX_LENGTH } from '@/lib/quiz/config';
+
 export function cn(...values: Array<string | false | null | undefined>) {
   return clsx(...values);
 }
@@ -49,7 +51,26 @@ export function generateGoldenTicketCode(seed: string, salt = 0) {
   return `IGGY-${token.join('')}`;
 }
 
-/** Single definition of email identity, used for the one-attempt-per-person rule. */
-export function normalizeEmail(email: string) {
-  return email.trim().toLowerCase();
+/**
+ * The only field a player can type. It lands on the booth leaderboard and in
+ * the CSV export, so it is trimmed, stripped of control characters (which would
+ * break both), and capped before it is ever stored.
+ */
+export function sanitizePlayerName(value: unknown) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+
+  // eslint-disable-next-line no-control-regex
+  return value.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, NAME_MAX_LENGTH);
+}
+
+/** The name is optional now, so a run can legitimately arrive without one. */
+export function displayName(name: string) {
+  return name.trim() || 'Anonymous';
+}
+
+/** First word only, for greetings. Falls back to '' when no name was given. */
+export function firstNameOf(name: string) {
+  return sanitizePlayerName(name).split(' ')[0]?.slice(0, 20) ?? '';
 }

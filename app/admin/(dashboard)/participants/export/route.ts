@@ -1,6 +1,17 @@
 import { assertAdmin } from '@/lib/admin/auth';
 import { getParticipants } from '@/lib/quiz/data';
 
+/**
+ * `name` is now free text a player types with nothing else attached, so a value
+ * starting with =, +, - or @ would execute as a formula when the booth team
+ * opens this in Excel. Prefix it to keep it inert.
+ */
+function toCsvValue(value: string | number | null) {
+  const text = String(value ?? '');
+  const escaped = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+  return `"${escaped.replaceAll('"', '""')}"`;
+}
+
 export async function GET() {
   try {
     await assertAdmin();
@@ -24,7 +35,7 @@ export async function GET() {
       participant.goldenTicketCode ?? '',
       participant.submittedAt
     ]
-      .map((value) => `"${String(value).replaceAll('"', '""')}"`)
+      .map(toCsvValue)
       .join(',')
   );
 
